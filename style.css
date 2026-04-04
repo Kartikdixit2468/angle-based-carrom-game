@@ -39,9 +39,9 @@ canvas {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   border: 12px solid #4a210b; /* Controlled board border */
   box-sizing: border-box;
-  width: min(76vw, 560px);
+  width: min(82vw, 620px);
   max-width: 100%;
-  max-height: calc(100% - 190px);
+  max-height: calc(100% - 170px);
   aspect-ratio: 1 / 1;
 }
 
@@ -157,8 +157,8 @@ p {
   }
 
   canvas {
-    width: min(84vw, 460px);
-    max-height: calc(100% - 165px);
+    width: min(90vw, 520px);
+    max-height: calc(100% - 150px);
     border-width: 10px;
   }
 }
