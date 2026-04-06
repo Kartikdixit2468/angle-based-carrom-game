@@ -325,7 +325,7 @@ function endInteraction(e) {
     const dy = dragStart.y - dragCurrent.y;
 
     // Power constraints
-    const powerLimiter = 0.28; // Increased power modifier for stronger strikes
+    const powerLimiter = 0.25; // Slightly reduced for gentler striker speed
     const maxSpeed = 60; // Increased max speed limit
 
     striker.vx = Math.max(-maxSpeed, Math.min(maxSpeed, dx * powerLimiter));
@@ -528,9 +528,9 @@ function drawTrajectoryAndAngles(ctx) {
   let endX = simX + dirX * visualPowerLimit;
   let endY = simY + dirY * visualPowerLimit;
   if (coinHit) {
-    // Use coin center (not contact-point gap) for edge-based angle explanation.
-    endX = coinHit.ball.x;
-    endY = coinHit.ball.y;
+    // Stop at the first actual striker-coin contact point.
+    endX = coinHit.hitX;
+    endY = coinHit.hitY;
   }
 
   // Draw main aim line
@@ -544,6 +544,64 @@ function drawTrajectoryAndAngles(ctx) {
 
   // 3. Coin Collision Prediction (if a coin is in the striker's path)
   if (coinHit) {
+    // Continue striker trajectory after impact (tangent component for equal-mass collision).
+    const approachDot = dirX * coinHit.normalX + dirY * coinHit.normalY;
+    let strikerPostX = dirX - approachDot * coinHit.normalX;
+    let strikerPostY = dirY - approachDot * coinHit.normalY;
+    let strikerPostMag = Math.hypot(strikerPostX, strikerPostY);
+
+    // Near head-on hits make tangent tiny; keep a short forward guide instead of disappearing.
+    if (strikerPostMag < 0.08) {
+      strikerPostX = dirX;
+      strikerPostY = dirY;
+      strikerPostMag = 1;
+    }
+
+    strikerPostX /= strikerPostMag;
+    strikerPostY /= strikerPostMag;
+
+    let strikerTWall = getWallRayDistance(
+      coinHit.hitX,
+      coinHit.hitY,
+      strikerPostX,
+      strikerPostY,
+      striker.radius
+    );
+    if (!Number.isFinite(strikerTWall) || strikerTWall <= 0) {
+      strikerTWall = boardSize * 0.22;
+    }
+
+    const strikerPreviewLen = Math.max(56, Math.min(strikerTWall, boardSize * 0.34));
+    const strikerEndX = coinHit.hitX + strikerPostX * strikerPreviewLen;
+    const strikerEndY = coinHit.hitY + strikerPostY * strikerPreviewLen;
+
+    ctx.beginPath();
+    ctx.setLineDash([8, 8]);
+    ctx.moveTo(coinHit.hitX, coinHit.hitY);
+    ctx.lineTo(strikerEndX, strikerEndY);
+    ctx.strokeStyle = "rgba(239, 68, 68, 0.9)";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.lineCap = "butt";
+
+    const strikerArrowSize = Math.max(7, boardSize * 0.013);
+    const strikerArrowAngle = Math.atan2(strikerPostY, strikerPostX);
+    ctx.beginPath();
+    ctx.setLineDash([]);
+    ctx.moveTo(strikerEndX, strikerEndY);
+    ctx.lineTo(
+      strikerEndX - strikerArrowSize * Math.cos(strikerArrowAngle - Math.PI / 6),
+      strikerEndY - strikerArrowSize * Math.sin(strikerArrowAngle - Math.PI / 6)
+    );
+    ctx.lineTo(
+      strikerEndX - strikerArrowSize * Math.cos(strikerArrowAngle + Math.PI / 6),
+      strikerEndY - strikerArrowSize * Math.sin(strikerArrowAngle + Math.PI / 6)
+    );
+    ctx.closePath();
+    ctx.fillStyle = "rgba(239, 68, 68, 0.9)";
+    ctx.fill();
+
     // Use real collision normal so coin direction/angle changes with where the striker hits.
     const coinDirX = -coinHit.normalX;
     const coinDirY = -coinHit.normalY;
