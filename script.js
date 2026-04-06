@@ -444,9 +444,21 @@ function drawTrajectoryAndAngles(ctx) {
 
   if (pullDistance < 10) return; // Too small to aim
 
+  // Match actual launch setup from endInteraction so preview and gameplay agree.
+  const previewPowerLimiter = 0.25;
+  const previewMaxSpeed = 60;
+  const launchVx = Math.max(-previewMaxSpeed, Math.min(previewMaxSpeed, dx * previewPowerLimiter));
+  const launchVy = Math.max(-previewMaxSpeed, Math.min(previewMaxSpeed, dy * previewPowerLimiter));
+  const launchSpeed = Math.hypot(launchVx, launchVy);
+  if (launchSpeed < 0.05) return;
+
+  // Normalize direction from launch velocity (not raw drag), accounting for clamping.
+  const dirX = launchVx / launchSpeed;
+  const dirY = launchVy / launchSpeed;
+
   // 1. Draw Angle Protractor at Striker
-  const physicalAimRad = Math.atan2(dy, dx); // Angle of aim for canvas drawing
-  const mathAimRad = Math.atan2(-dy, dx); // Mathematical angle (anti-clockwise)
+  const physicalAimRad = Math.atan2(dirY, dirX); // Angle of aim for canvas drawing
+  const mathAimRad = Math.atan2(-dirY, dirX); // Mathematical angle (anti-clockwise)
   let aimAngleDeg = Math.round((mathAimRad * 180) / Math.PI);
   if (aimAngleDeg < 0) aimAngleDeg += 360; // Keep 0-360
 
@@ -475,10 +487,6 @@ function drawTrajectoryAndAngles(ctx) {
   // 2. Trajectory Prediction (Raycast)
   let simX = striker.x;
   let simY = striker.y;
-
-  // Normalize direction
-  const dirX = dx / pullDistance;
-  const dirY = dy / pullDistance;
 
   // Find intersection with inner walls (accounting for corner padding)
   let tMin = Infinity;
@@ -561,14 +569,24 @@ function drawTrajectoryAndAngles(ctx) {
     ctx.lineWidth = 1.6;
     ctx.stroke();
 
-    // Continue striker trajectory after impact (tangent component for equal-mass collision).
-    const approachDot = dirX * coinHit.normalX + dirY * coinHit.normalY;
-    let strikerPostX = dirX - approachDot * coinHit.normalX;
-    let strikerPostY = dirY - approachDot * coinHit.normalY;
-    let strikerPostMag = Math.hypot(strikerPostX, strikerPostY);
+    // Use the same collision model as handleCollisions (mass + restitution).
+    const nX = -coinHit.normalX; // striker -> coin normal
+    const nY = -coinHit.normalY;
+    const restitution = 0.85;
+    const relDot = launchVx * nX + launchVy * nY;
+    const impulse = (2 * relDot) / (striker.mass + coinHit.ball.mass);
 
-    // Near head-on hits make tangent tiny; keep a short forward guide instead of disappearing.
-    if (strikerPostMag < 0.08) {
+    const strikerPostVX = launchVx - impulse * coinHit.ball.mass * nX * restitution;
+    const strikerPostVY = launchVy - impulse * coinHit.ball.mass * nY * restitution;
+    const coinPostVX = impulse * striker.mass * nX * restitution;
+    const coinPostVY = impulse * striker.mass * nY * restitution;
+
+    let strikerPostMag = Math.hypot(strikerPostVX, strikerPostVY);
+    let strikerPostX = strikerPostVX;
+    let strikerPostY = strikerPostVY;
+
+    // Keep guide stable for extremely soft grazing contacts.
+    if (strikerPostMag < 0.05) {
       strikerPostX = dirX;
       strikerPostY = dirY;
       strikerPostMag = 1;
@@ -588,7 +606,11 @@ function drawTrajectoryAndAngles(ctx) {
       strikerTWall = boardSize * 0.22;
     }
 
-    const strikerPreviewLen = Math.max(56, Math.min(strikerTWall, boardSize * 0.34));
+    const strikerSpeedRatio = Math.max(0.18, Math.min(1.2, strikerPostMag / launchSpeed));
+    const strikerPreviewLen = Math.max(
+      48,
+      Math.min(strikerTWall, boardSize * (0.18 + 0.18 * strikerSpeedRatio))
+    );
     const strikerEndX = coinHit.hitX + strikerPostX * strikerPreviewLen;
     const strikerEndY = coinHit.hitY + strikerPostY * strikerPreviewLen;
 
@@ -619,9 +641,10 @@ function drawTrajectoryAndAngles(ctx) {
     ctx.fillStyle = "rgba(239, 68, 68, 0.9)";
     ctx.fill();
 
-    // Use real collision normal so coin direction/angle changes with where the striker hits.
-    const coinDirX = -coinHit.normalX;
-    const coinDirY = -coinHit.normalY;
+    // Coin direction from same collision response as gameplay.
+    const coinPostMag = Math.hypot(coinPostVX, coinPostVY);
+    const coinDirX = coinPostMag > 1e-6 ? coinPostVX / coinPostMag : nX;
+    const coinDirY = coinPostMag > 1e-6 ? coinPostVY / coinPostMag : nY;
     let angleFromXDeg = Math.round((Math.atan2(-coinDirY, coinDirX) * 180) / Math.PI);
     if (angleFromXDeg < 0) angleFromXDeg += 360;
 
@@ -659,7 +682,11 @@ function drawTrajectoryAndAngles(ctx) {
         coinTWall = boardSize * 0.2;
       }
 
-      const coinPreviewLen = Math.max(26, Math.min(coinTWall, boardSize * 0.24));
+      const coinSpeedRatio = Math.max(0.2, Math.min(1.4, coinPostMag / launchSpeed));
+      const coinPreviewLen = Math.max(
+        24,
+        Math.min(coinTWall, boardSize * (0.14 + 0.14 * coinSpeedRatio))
+      );
       const coinEndX = coinHit.ball.x + coinDirX * coinPreviewLen;
       const coinEndY = coinHit.ball.y + coinDirY * coinPreviewLen;
 
