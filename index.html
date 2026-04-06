@@ -700,6 +700,7 @@
       </div>
     </div>
 
+    
     <script>
       // ── DOM ──────────────────────────────────────────────────────────────────────
       const canvas = document.getElementById("gameCanvas"),
@@ -750,8 +751,12 @@
       // ── CANVAS SIZE ───────────────────────────────────────────────────────────────
       function resize() {
         const c = document.getElementById("gc").getBoundingClientRect();
-        const topHud = document.getElementById("hud-top").getBoundingClientRect();
-        const bottomHud = document.getElementById("hud-bottom").getBoundingClientRect();
+        const topHud = document
+          .getElementById("hud-top")
+          .getBoundingClientRect();
+        const bottomHud = document
+          .getElementById("hud-bottom")
+          .getBoundingClientRect();
         const verticalPad = window.innerWidth <= 680 ? 14 : 22;
 
         const w = Math.min(c.width * 0.9, 640);
