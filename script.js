@@ -544,6 +544,23 @@ function drawTrajectoryAndAngles(ctx) {
 
   // 3. Coin Collision Prediction (if a coin is in the striker's path)
   if (coinHit) {
+    // Ghost striker at impact point so the contact looks physically clear.
+    const ghostRadius = striker.radius;
+    ctx.beginPath();
+    ctx.setLineDash([]);
+    ctx.arc(coinHit.hitX, coinHit.hitY, ghostRadius, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(59, 130, 246, 0.28)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(37, 99, 235, 0.78)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(coinHit.hitX, coinHit.hitY, ghostRadius * 0.44, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(147, 197, 253, 0.75)";
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
     // Continue striker trajectory after impact (tangent component for equal-mass collision).
     const approachDot = dirX * coinHit.normalX + dirY * coinHit.normalY;
     let strikerPostX = dirX - approachDot * coinHit.normalX;
