@@ -470,7 +470,7 @@ function drawTrajectoryAndAngles(ctx) {
   // Draw Angle Text
   ctx.fillStyle = "#000000"; // Changed to black
   ctx.font = "900 18px Quicksand"; // Extra bold font
-  ctx.fillText(`${aimAngleDeg}Â°`, striker.x + 50, striker.y - 10);
+  ctx.fillText(`${aimAngleDeg}°`, striker.x + 50, striker.y - 10);
 
   // 2. Trajectory Prediction (Raycast)
   let simX = striker.x;
@@ -528,8 +528,9 @@ function drawTrajectoryAndAngles(ctx) {
   let endX = simX + dirX * visualPowerLimit;
   let endY = simY + dirY * visualPowerLimit;
   if (coinHit) {
-    endX = coinHit.hitX;
-    endY = coinHit.hitY;
+    // Use coin center (not contact-point gap) for edge-based angle explanation.
+    endX = coinHit.ball.x;
+    endY = coinHit.ball.y;
   }
 
   // Draw main aim line
@@ -543,108 +544,87 @@ function drawTrajectoryAndAngles(ctx) {
 
   // 3. Coin Collision Prediction (if a coin is in the striker's path)
   if (coinHit) {
-    const coinDirectionX = -coinHit.normalX;
-    const coinDirectionY = -coinHit.normalY;
-    const coinDirAngle = Math.atan2(coinDirectionY, coinDirectionX);
-    const incomingAngle = Math.atan2(dirY, dirX);
+    // Use real collision normal so coin direction/angle changes with where the striker hits.
+    const coinDirX = -coinHit.normalX;
+    const coinDirY = -coinHit.normalY;
+    let angleFromXDeg = Math.round((Math.atan2(-coinDirY, coinDirX) * 180) / Math.PI);
+    if (angleFromXDeg < 0) angleFromXDeg += 360;
 
-    // Draw a clear impact marker and line of contact to coin center.
+    // Local reference: dotted X-axis passing through the coin center.
+    const axisLen = Math.max(78, boardSize * 0.15);
+    ctx.beginPath();
+    ctx.setLineDash([7, 6]);
+    ctx.moveTo(coinHit.ball.x - axisLen, coinHit.ball.y);
+    ctx.lineTo(coinHit.ball.x + axisLen, coinHit.ball.y);
+    ctx.strokeStyle = "rgba(17, 24, 39, 0.86)";
+    ctx.lineWidth = 2.6;
+    ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineCap = "butt";
+
+    // Simple target marker on coin center.
     ctx.beginPath();
     ctx.setLineDash([]);
-    ctx.arc(coinHit.hitX, coinHit.hitY, Math.max(4, striker.radius * 0.25), 0, Math.PI * 2);
+    ctx.arc(coinHit.ball.x, coinHit.ball.y, Math.max(4, coinHit.ball.radius * 0.3), 0, Math.PI * 2);
     ctx.fillStyle = "#ef4444";
     ctx.fill();
 
-    ctx.beginPath();
-    ctx.setLineDash([3, 5]);
-    ctx.moveTo(coinHit.hitX, coinHit.hitY);
-    ctx.lineTo(coinHit.ball.x, coinHit.ball.y);
-    ctx.strokeStyle = "rgba(250, 204, 21, 0.95)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Predicted coin travel after impact.
-    const coinWallDistance = getWallRayDistance(
-      coinHit.ball.x,
-      coinHit.ball.y,
-      coinDirectionX,
-      coinDirectionY,
-      coinHit.ball.radius,
-    );
-    const coinTravel = Math.min(pullDistance * 2.3, coinWallDistance * 0.9, boardSize * 0.35);
-    const coinEndX = coinHit.ball.x + coinDirectionX * coinTravel;
-    const coinEndY = coinHit.ball.y + coinDirectionY * coinTravel;
-
-    ctx.beginPath();
-    ctx.setLineDash([7, 7]);
-    ctx.moveTo(coinHit.ball.x, coinHit.ball.y);
-    ctx.lineTo(coinEndX, coinEndY);
-    ctx.strokeStyle = "#22c55e";
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Predicted striker deflection after glancing impact.
-    const normalDot = dirX * coinHit.normalX + dirY * coinHit.normalY;
-    let tangentX = dirX - normalDot * coinHit.normalX;
-    let tangentY = dirY - normalDot * coinHit.normalY;
-    const tangentLen = Math.hypot(tangentX, tangentY);
-
-    if (tangentLen > 0.06) {
-      tangentX /= tangentLen;
-      tangentY /= tangentLen;
-
-      const strikerWallDistance = getWallRayDistance(
-        coinHit.hitX,
-        coinHit.hitY,
-        tangentX,
-        tangentY,
-        striker.radius,
+    // Predicted coin trajectory (first segment) after the striker hit.
+    if (Math.hypot(coinDirX, coinDirY) > 1e-6) {
+      let coinTWall = getWallRayDistance(
+        coinHit.ball.x,
+        coinHit.ball.y,
+        coinDirX,
+        coinDirY,
+        coinHit.ball.radius
       );
-      const strikerTravel = Math.min(
-        pullDistance * 1.7,
-        strikerWallDistance * 0.85,
-        boardSize * 0.25,
-      );
-      const strikerEndX = coinHit.hitX + tangentX * strikerTravel;
-      const strikerEndY = coinHit.hitY + tangentY * strikerTravel;
-      const deflectAngle = Math.atan2(tangentY, tangentX);
+
+      if (!Number.isFinite(coinTWall) || coinTWall <= 0) {
+        coinTWall = boardSize * 0.2;
+      }
+
+      const coinPreviewLen = Math.max(26, Math.min(coinTWall, boardSize * 0.24));
+      const coinEndX = coinHit.ball.x + coinDirX * coinPreviewLen;
+      const coinEndY = coinHit.ball.y + coinDirY * coinPreviewLen;
 
       ctx.beginPath();
-      ctx.setLineDash([7, 7]);
-      ctx.moveTo(coinHit.hitX, coinHit.hitY);
-      ctx.lineTo(strikerEndX, strikerEndY);
-      ctx.strokeStyle = "#38bdf8";
-      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 6]);
+      ctx.moveTo(coinHit.ball.x, coinHit.ball.y);
+      ctx.lineTo(coinEndX, coinEndY);
+      ctx.strokeStyle = "#16a34a";
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = "round";
       ctx.stroke();
+      ctx.lineCap = "butt";
 
-      drawAngleArc(
-        ctx,
-        coinHit.hitX,
-        coinHit.hitY,
-        Math.max(22, striker.radius * 1.3),
-        coinDirAngle,
-        deflectAngle,
-        "rgba(56, 189, 248, 0.9)",
+      const arrowSize = Math.max(6, boardSize * 0.012);
+      const arrowAngle = Math.atan2(coinDirY, coinDirX);
+      ctx.beginPath();
+      ctx.setLineDash([]);
+      ctx.moveTo(coinEndX, coinEndY);
+      ctx.lineTo(
+        coinEndX - arrowSize * Math.cos(arrowAngle - Math.PI / 6),
+        coinEndY - arrowSize * Math.sin(arrowAngle - Math.PI / 6)
       );
+      ctx.lineTo(
+        coinEndX - arrowSize * Math.cos(arrowAngle + Math.PI / 6),
+        coinEndY - arrowSize * Math.sin(arrowAngle + Math.PI / 6)
+      );
+      ctx.closePath();
+      ctx.fillStyle = "#16a34a";
+      ctx.fill();
     }
 
-    // Impact angle between incoming striker direction and coin push direction.
-    drawAngleArc(
-      ctx,
-      coinHit.hitX,
-      coinHit.hitY,
-      Math.max(16, striker.radius),
-      coinDirAngle,
-      incomingAngle,
-      "rgba(250, 204, 21, 0.95)",
-    );
-
-    const hitDot = Math.max(-1, Math.min(1, dirX * coinDirectionX + dirY * coinDirectionY));
-    const hitAngleDeg = Math.round((Math.acos(hitDot) * 180) / Math.PI);
-    ctx.setLineDash([]);
+    const labelOnLeft = coinHit.ball.x > boardSize * 0.62;
+    const labelX = labelOnLeft ? coinHit.ball.x - 16 : coinHit.ball.x + 16;
+    ctx.textAlign = labelOnLeft ? "right" : "left";
+    ctx.textBaseline = "alphabetic";
     ctx.fillStyle = "#111827";
     ctx.font = "700 16px Quicksand";
-    ctx.fillText(`${hitAngleDeg}\u00B0`, coinHit.hitX + 18, coinHit.hitY - 10);
+    ctx.fillText(`θx = ${angleFromXDeg}°`, labelX, coinHit.ball.y - 2);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
 
     return;
   }
@@ -674,58 +654,32 @@ function drawTrajectoryAndAngles(ctx) {
     ctx.strokeStyle = "#0ea5e9"; // bright cyan reflection
     ctx.stroke();
 
-    // --- DRAW EDUCATIONAL ANGLES (Incidence and Reflection) ---
+    // Wall-hit angle from global horizontal (+X) edge.
+    let wallAngleDeg = Math.round((Math.atan2(-dirY, dirX) * 180) / Math.PI);
+    if (wallAngleDeg < 0) wallAngleDeg += 360;
+
+    const wallAxisLen = Math.max(72, boardSize * 0.14);
+    ctx.beginPath();
+    ctx.setLineDash([7, 6]);
+    ctx.moveTo(endX - wallAxisLen, endY);
+    ctx.lineTo(endX + wallAxisLen, endY);
+    ctx.strokeStyle = "rgba(17, 24, 39, 0.86)";
+    ctx.lineWidth = 2.6;
+    ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.lineCap = "butt";
+
+    const wallLabelOnLeft = endX > boardSize * 0.62;
+    const wallLabelX = wallLabelOnLeft ? endX - 14 : endX + 14;
     ctx.setLineDash([]);
-
-    const angleNormal = Math.atan2(hitNormalY, hitNormalX);
-    const angleIn = Math.atan2(-dirY, -dirX); // reverse direction to point away from wall
-    const angleOut = Math.atan2(refY, refX);
-    const arcRadius = 25;
-
-    // Draw Incidence Arc (Red)
-    drawAngleArc(
-      ctx,
-      endX,
-      endY,
-      arcRadius,
-      angleNormal,
-      angleIn,
-      "rgba(239, 68, 68, 0.8)",
-    );
-    // Draw Reflection Arc (Blue)
-    drawAngleArc(
-      ctx,
-      endX,
-      endY,
-      arcRadius,
-      angleNormal,
-      angleOut,
-      "rgba(14, 165, 233, 0.8)",
-    );
-
-    // Calculate degree value
-    const dotIn = -dirX * hitNormalX + -dirY * hitNormalY;
-    let degreeVal = Math.round(
-      (Math.acos(Math.max(-1, Math.min(1, dotIn))) * 180) / Math.PI,
-    );
-
-    // Label the angles cleanly with a single bigger font
-    ctx.fillStyle = "#000000"; // Changed to black
-    ctx.font = "900 24px Quicksand"; // Extra bold and large
-
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    // Position it outwards along the normal vector
-    const labelDist = 55;
-    ctx.fillText(
-      `${degreeVal}Â°`,
-      endX + hitNormalX * labelDist,
-      endY + hitNormalY * labelDist,
-    );
-
-    ctx.textAlign = "left";
+    ctx.textAlign = wallLabelOnLeft ? "right" : "left";
     ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#111827";
+    ctx.font = "700 15px Quicksand";
+    ctx.fillText(`wall θx = ${wallAngleDeg}°`, wallLabelX, endY - 4);
+    ctx.textAlign = "left";
+
+    ctx.setLineDash([]);
   }
 
   ctx.setLineDash([]); // reset
@@ -815,7 +769,7 @@ function handleCollisions() {
           // Scored a coin
           score++;
           updateUI();
-          changePrompt("Awesome geometry! ðŸŒŸ");
+          changePrompt("Awesome geometry! 🌟");
           if (score >= targetScore) {
             endGame(true);
           }
