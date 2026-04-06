@@ -6,76 +6,2091 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Angle Striker - Math Carrom</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css" />
+    <title>Angle Striker – Math Carrom</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Nunito", sans-serif;
+        background: #0d1117;
+        color: #f3f4f6;
+        touch-action: none;
+        min-height: 100vh;
+        overflow: hidden;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at 20% 30%, #1a2a4a 0%, transparent 60%),
+          radial-gradient(ellipse at 80% 70%, #1a1a3a 0%, transparent 60%),
+          #0d1117;
+        z-index: 0;
+      }
+      #gc {
+        position: relative;
+        z-index: 1;
+        width: min(98vw, 1100px);
+        height: min(98vh, 820px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 12px 12px 20px;
+        border-radius: 24px;
+        background: linear-gradient(
+          160deg,
+          #1a2744 0%,
+          #111827 60%,
+          #1a2030 100%
+        );
+        box-shadow:
+          0 24px 60px rgba(0, 0, 0, 0.7),
+          inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        overflow: hidden;
+      }
+
+      #hud-top {
+        position: relative;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 6px;
+        z-index: 18;
+        pointer-events: none;
+      }
+
+      #hud-bottom {
+        position: relative;
+        width: min(980px, 100%);
+        min-height: 176px;
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        z-index: 19;
+      }
+
+      canvas {
+        background-color: #f0c9a8;
+        border-radius: 16px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+        border: 14px solid #3d1a06;
+        width: min(86vw, 640px);
+        max-width: 100%;
+        max-height: calc(100% - 280px);
+        aspect-ratio: 1/1;
+        display: block;
+      }
+      #prompt {
+        position: relative;
+        margin: 0 auto;
+        max-width: min(760px, calc(100% - 8px));
+        background: rgba(15, 23, 42, 0.95);
+        padding: 9px 20px;
+        border-radius: 30px;
+        font-weight: 700;
+        color: #93c5fd;
+        font-size: 1rem;
+        text-align: center;
+        line-height: 1.25;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+        border: 2px solid #3b82f6;
+        z-index: 18;
+        pointer-events: none;
+        white-space: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        animation: bIn 0.4s ease-out;
+      }
+      @keyframes bIn {
+        0% {
+          transform: scale(0.9);
+          opacity: 0;
+        }
+        65% {
+          transform: scale(1.04);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      .sbar {
+        position: relative;
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 10px;
+        z-index: 18;
+        pointer-events: none;
+      }
+
+      .sbar .sbadge:nth-child(1) {
+        justify-self: start;
+      }
+
+      .sbar .sbadge:nth-child(2) {
+        justify-self: center;
+      }
+
+      .sbar .sbadge:nth-child(3) {
+        justify-self: end;
+      }
+
+      .sbadge {
+        background: rgba(15, 23, 42, 0.92);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+      .panel {
+        position: absolute;
+        background: rgba(15, 23, 42, 0.97);
+        padding: 28px 32px;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        text-align: center;
+        border: 3px solid #374151;
+        z-index: 40;
+      }
+      .gbtn {
+        background: #2563eb;
+        border: 2px solid #60a5fa;
+        color: #fff;
+        font-family: inherit;
+        font-weight: 800;
+        padding: 12px 30px;
+        border-radius: 30px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.15s;
+        letter-spacing: 0.02em;
+      }
+      .gbtn:hover {
+        transform: scale(1.04);
+        background: #1d4ed8;
+      }
+      /* Step banners */
+      .bbanner {
+        position: relative;
+        bottom: auto;
+        left: auto;
+        transform: none;
+        background: rgba(15, 23, 42, 0.97);
+        border-radius: 18px;
+        padding: 14px 26px;
+        z-index: 25;
+        text-align: center;
+        min-width: 0;
+        width: min(980px, 98%);
+        max-width: 98%;
+        animation: sUp 0.35s ease-out;
+        display: none;
+      }
+      @keyframes sUp {
+        from {
+          transform: translateY(22px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      /* Step indicator */
+      #step-indicator {
+        position: relative;
+        width: 100%;
+        display: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        z-index: 18;
+        pointer-events: none;
+      }
+      .step-pill {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        border: 2px solid;
+        transition: all 0.3s;
+      }
+      .step-pill.active {
+        opacity: 1;
+      }
+      .step-pill.done {
+        opacity: 0.5;
+      }
+      .step-pill.pending {
+        opacity: 0.28;
+      }
+      /* Power bar */
+      #pw {
+        position: relative;
+        bottom: auto;
+        left: auto;
+        transform: none;
+        width: min(560px, 94%);
+        background: rgba(15, 23, 42, 0.95);
+        border: 2px solid #374151;
+        border-radius: 20px;
+        padding: 8px 16px;
+        z-index: 20;
+        display: none;
+        text-align: center;
+      }
+      #pw p {
+        color: #9ca3af;
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+      #pw-track {
+        width: 100%;
+        height: 13px;
+        background: #1f2937;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      #pw-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 10px;
+        transition:
+          width 0.05s,
+          background 0.05s;
+      }
+      #pw-lbl {
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      /* Quiz */
+      #qbox {
+        position: relative;
+        bottom: auto;
+        left: auto;
+        transform: none;
+        background: rgba(15, 23, 42, 0.97);
+        border: 3px solid #f59e0b;
+        border-radius: 20px;
+        padding: 18px 22px;
+        z-index: 30;
+        min-width: 0;
+        width: min(980px, 98%);
+        max-width: 98%;
+        text-align: center;
+        display: none;
+        animation: sUp 0.35s ease-out;
+      }
+      .qbtn {
+        padding: 9px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.93rem;
+        font-family: inherit;
+        cursor: pointer;
+        border: 2px solid;
+        transition: all 0.15s;
+        margin: 4px;
+      }
+      .qbtn:hover:not(:disabled) {
+        transform: scale(1.07);
+      }
+      .qbtn.neutral {
+        background: #1e3a8a;
+        border-color: #3b82f6;
+        color: #dbeafe;
+      }
+      .qbtn.correct {
+        background: #065f46;
+        border-color: #10b981;
+        color: #d1fae5;
+      }
+      .qbtn.wrong {
+        background: #7f1d1d;
+        border-color: #ef4444;
+        color: #fee2e2;
+      }
+      /* Shot feedback */
+      #sfb {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(15, 23, 42, 0.97);
+        border: 3px solid #8b5cf6;
+        border-radius: 20px;
+        padding: 22px 30px;
+        z-index: 35;
+        text-align: center;
+        display: none;
+        min-width: 240px;
+        animation: pIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      @keyframes pIn {
+        from {
+          transform: translate(-50%, -50%) scale(0.7);
+          opacity: 0;
+        }
+        to {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 1;
+        }
+      }
+      /* Toast */
+      #toast {
+        position: relative;
+        bottom: auto;
+        left: auto;
+        transform: none;
+        background: rgba(6, 78, 59, 0.97);
+        border: 2px solid #10b981;
+        border-radius: 14px;
+        padding: 10px 20px;
+        z-index: 26;
+        color: #d1fae5;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-align: center;
+        pointer-events: none;
+        white-space: normal;
+        width: min(760px, 94%);
+        display: none;
+      }
+      /* Lock btn */
+      #lockbtn {
+        background: #10b981;
+        border: 2px solid #34d399;
+        color: #fff;
+        font-family: inherit;
+        font-weight: 800;
+        padding: 10px 28px;
+        border-radius: 30px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: all 0.15s;
+        margin-top: 10px;
+      }
+      #lockbtn:hover {
+        transform: scale(1.05);
+        background: #059669;
+      }
+      @media (max-width: 680px) {
+        #gc {
+          width: 100vw;
+          height: 100vh;
+          border-radius: 0;
+          padding: 8px 8px 12px;
+        }
+
+        #hud-top {
+          width: 100%;
+          gap: 6px;
+          margin-bottom: 4px;
+        }
+
+        #hud-bottom {
+          width: 100%;
+          min-height: 150px;
+          margin-top: 8px;
+          gap: 8px;
+        }
+
+        canvas {
+          width: min(95vw, 420px);
+          max-height: calc(100% - 255px);
+          border-width: 10px;
+        }
+
+        #prompt {
+          max-width: calc(100% - 4px);
+          font-size: 0.82rem;
+          padding: 7px 14px;
+        }
+
+        .sbar {
+          grid-template-columns: 1fr 1fr;
+          row-gap: 6px;
+        }
+
+        .sbar .sbadge:nth-child(1) {
+          justify-self: start;
+        }
+
+        .sbar .sbadge:nth-child(2) {
+          grid-column: 1 / -1;
+          justify-self: center;
+        }
+
+        .sbar .sbadge:nth-child(3) {
+          justify-self: end;
+        }
+
+        #step-indicator {
+          gap: 6px;
+        }
+
+        .step-pill {
+          font-size: 0.68rem;
+          padding: 4px 9px;
+        }
+
+        .sbadge {
+          font-size: 0.76rem;
+          padding: 5px 10px;
+        }
+
+        .bbanner,
+        #qbox {
+          width: 100%;
+          max-width: 100%;
+          padding: 12px 14px;
+          border-radius: 14px;
+        }
+
+        #pw {
+          width: min(96%, 420px);
+        }
+
+        #toast {
+          width: min(96%, 520px);
+          font-size: 0.8rem;
+          padding: 8px 12px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="game-container">
-      <!-- Educational Prompts from the "Teacher" -->
-      <div id="prompt" class="teacher-prompt">
-        Drag striker sideways to position!
-      </div>
+    <div id="gc">
+      <div id="hud-top">
+        <div id="prompt">Welcome to Math Carrom! 🎯</div>
 
-      <!-- Stats -->
-      <div class="stats-bar">
-        <div class="stat-badge text-orange-500 border-2 border-orange-200">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z"
-            />
-          </svg>
-          Coins: <span id="score-display">0</span>/5
+        <div class="sbar">
+          <div class="sbadge" style="border: 2px solid #f97316; color: #f97316">
+            🪙 <span id="sc">0</span>/9
+          </div>
+          <div class="sbadge" style="border: 2px solid #a78bfa; color: #a78bfa">
+            ⭐ <span id="bc">0</span>
+          </div>
+          <div class="sbadge" style="border: 2px solid #38bdf8; color: #38bdf8">
+            ⏱ <span id="tc">120</span>s
+          </div>
         </div>
-        <div class="stat-badge text-blue-500 border-2 border-blue-200">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          Time: <span id="time-display">60</span>s
+
+        <!-- Step indicator -->
+        <div id="step-indicator">
+          <div
+            class="step-pill"
+            id="sp1"
+            style="border-color: #fbbf24; color: #fbbf24"
+          >
+            🎯 1. Pick Coin
+          </div>
+          <div
+            class="step-pill"
+            id="sp2"
+            style="border-color: #a78bfa; color: #a78bfa"
+          >
+            📍 2. Lock Position
+          </div>
+          <div
+            class="step-pill"
+            id="sp3"
+            style="border-color: #38bdf8; color: #38bdf8"
+          >
+            ❓ 3. Angle Quiz
+          </div>
+          <div
+            class="step-pill"
+            id="sp4"
+            style="border-color: #10b981; color: #10b981"
+          >
+            🏹 4. Shoot!
+          </div>
         </div>
       </div>
 
       <canvas id="gameCanvas"></canvas>
 
-      <!-- Start / End Screens -->
-      <div id="menu" class="ui-panel">
-        <h1 class="text-3xl font-bold text-blue-400 mb-2">Math Carrom</h1>
-        <p class="text-gray-300 mb-6 font-semibold">
-          Master the angles to pocket the coins!
+      <div id="hud-bottom">
+        <!-- STEP 2 banner: slide and lock -->
+        <div id="b-pos" class="bbanner" style="border: 3px solid #10b981">
+          <p
+            style="
+              color: #6ee7b7;
+              font-weight: 800;
+              font-size: 1rem;
+              margin-bottom: 4px;
+            "
+          >
+            📍 Step 2 — Position your striker!
+          </p>
+          <p style="color: #d1d5db; font-size: 0.88rem; margin-bottom: 10px">
+            Slide left/right to the
+            <b style="color: #a78bfa">▼ purple marker</b> (best spot),<br />then
+            tap <b style="color: #10b981">Lock Position</b>.
+          </p>
+          <button id="lockbtn">🔒 Lock Position</button>
+        </div>
+
+        <!-- STEP 3: Quiz -->
+        <div id="qbox">
+          <p
+            id="qq"
+            style="
+              color: #fcd34d;
+              font-weight: 800;
+              margin-bottom: 12px;
+              font-size: 1rem;
+            "
+          ></p>
+          <div id="qbtns"></div>
+          <p
+            id="qfb"
+            style="margin-top: 10px; font-size: 0.88rem; min-height: 1.2em"
+          ></p>
+        </div>
+
+        <!-- Power bar -->
+        <div id="pw">
+          <p>POWER</p>
+          <div id="pw-track"><div id="pw-fill"></div></div>
+          <div id="pw-lbl">–</div>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast"></div>
+      </div>
+
+      <!-- Shot feedback -->
+      <div id="sfb">
+        <p
+          id="sf-t"
+          style="font-size: 1.2rem; font-weight: 800; margin-bottom: 6px"
+        ></p>
+        <p
+          id="sf-b"
+          style="color: #d1d5db; font-size: 0.9rem; margin-bottom: 4px"
+        ></p>
+        <p
+          id="sf-a"
+          style="font-size: 0.95rem; font-weight: 700; color: #c4b5fd"
+        ></p>
+      </div>
+
+      <!-- Demo -->
+      <div id="demo-b" class="panel" style="display: none">
+        <p
+          style="
+            color: #c4b5fd;
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+          "
+        >
+          🎬 3-Step Demo
+        </p>
+        <p
+          style="
+            color: #d1d5db;
+            font-size: 0.9rem;
+            margin-bottom: 18px;
+            line-height: 1.8;
+          "
+        >
+          <b style="color: #fbbf24">Step 1</b> — Tap a coin to select it<br />
+          <b style="color: #a78bfa">Step 2</b> — Slide striker to best spot
+          &amp; Lock<br />
+          <b style="color: #38bdf8">Step 3</b> — Guess the angle, then shoot!<br />
+          <span style="color: #9ca3af; font-size: 0.85rem"
+            >The red dot shows exactly where to hit the coin.</span
+          >
+        </p>
+        <button id="demo-skip" class="gbtn">Got it! Let me Play →</button>
+      </div>
+
+      <!-- Menu -->
+      <div id="menu" class="panel">
+        <h1
+          style="
+            font-family: &quot;Baloo 2&quot;, cursive;
+            font-size: 2rem;
+            color: #60a5fa;
+            margin-bottom: 4px;
+          "
+        >
+          Math Carrom
+        </h1>
+        <p style="color: #9ca3af; font-weight: 700; margin-bottom: 18px">
+          Master angles to pocket the coins!
         </p>
         <div
-          class="text-left text-sm text-gray-300 mb-6 space-y-2 bg-gray-800 p-3 rounded-lg border border-gray-600"
+          style="
+            text-align: left;
+            font-size: 0.88rem;
+            color: #d1d5db;
+            margin-bottom: 18px;
+            background: #0f172a;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #374151;
+            line-height: 2.1;
+          "
         >
-          <p>âœ‹ <b>Drag</b> left/right to position your striker.</p>
-          <p>ðŸŽ¯ <b>Pull backwards</b> to aim & set power.</p>
-          <p>
-            ðŸ“ Watch how the ball <b>bounces</b> at the same angle it hits!
-          </p>
+          <p>🎯 <b>Tap a coin</b> — red dot shows the contact point</p>
+          <p>📍 <b>Slide to purple marker</b> — best launch position</p>
+          <p>🔒 <b>Lock Position</b> — freezes your X spot</p>
+          <p>❓ <b>Guess the angle</b> for bonus points!</p>
+          <p>👇 <b>Pull backwards</b> to aim &amp; fire</p>
         </div>
-        <button
-          id="start-btn"
-          class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95 text-lg border-2 border-blue-400"
-        >
-          Play Game
+        <button id="start-btn" class="gbtn" style="font-size: 1.1rem">
+          ▶ Play Game
         </button>
       </div>
 
-      <div id="game-over" class="ui-panel hidden">
-        <h1 id="end-title" class="text-3xl font-bold mb-2">Game Over!</h1>
-        <p id="end-msg" class="text-gray-300 mb-6 text-lg"></p>
-        <button
-          id="restart-btn"
-          class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95 text-lg border-2 border-blue-400"
-        >
-          Try Again
-        </button>
+      <!-- Game Over -->
+      <div id="gover" class="panel" style="display: none">
+        <h1
+          id="et"
+          style="
+            font-family: &quot;Baloo 2&quot;, cursive;
+            font-size: 1.9rem;
+            margin-bottom: 6px;
+          "
+        ></h1>
+        <p
+          id="em"
+          style="color: #9ca3af; margin-bottom: 12px; font-weight: 700"
+        ></p>
+        <p
+          id="eb"
+          style="
+            color: #a78bfa;
+            font-weight: 800;
+            margin-bottom: 18px;
+            font-size: 1rem;
+          "
+        ></p>
+        <button id="restart-btn" class="gbtn">🔄 Try Again</button>
       </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+      // ── DOM ──────────────────────────────────────────────────────────────────────
+      const canvas = document.getElementById("gameCanvas"),
+        ctx = canvas.getContext("2d");
+      const promptEl = document.getElementById("prompt");
+      const scEl = document.getElementById("sc"),
+        bcEl = document.getElementById("bc"),
+        tcEl = document.getElementById("tc");
+      const pwDiv = document.getElementById("pw"),
+        pwFill = document.getElementById("pw-fill"),
+        pwLbl = document.getElementById("pw-lbl");
+
+      // ── STATE ─────────────────────────────────────────────────────────────────────
+      // MENU | DEMO | COIN_SELECT | POSITION_LOCK | QUIZ | PLAYING | GAMEOVER
+      let G = "MENU";
+      let score = 0,
+        bonus = 0,
+        timeLeft = 120,
+        timer;
+      let boardSize = 0,
+        laneGap = 0,
+        laneLength = 0;
+      let balls = [],
+        striker,
+        pockets = [];
+      let lastTime = 0,
+        shotTaken = false;
+      // interaction
+      let interacting = false,
+        iMode = "NONE";
+      let dStart = { x: 0, y: 0 },
+        dCur = { x: 0, y: 0 };
+      // edu flow
+      let selCoin = null,
+        targetDeg = null,
+        quizDone = false;
+      let pendingShot = null,
+        posLocked = false,
+        lockedX = null,
+        optX = null;
+      // blink
+      let blinkOn = false,
+        blinkVis = true,
+        blinkIv = null;
+      // demo
+      let demoFired = false;
+
+      // ── CANVAS SIZE ───────────────────────────────────────────────────────────────
+      function resize() {
+        const c = document.getElementById("gc").getBoundingClientRect();
+        const topHud = document.getElementById("hud-top").getBoundingClientRect();
+        const bottomHud = document.getElementById("hud-bottom").getBoundingClientRect();
+        const verticalPad = window.innerWidth <= 680 ? 14 : 22;
+
+        const w = Math.min(c.width * 0.9, 640);
+        const h = Math.min(
+          c.height - topHud.height - bottomHud.height - verticalPad,
+          window.innerHeight - topHud.height - bottomHud.height - verticalPad,
+        );
+
+        boardSize = Math.floor(Math.max(240, Math.min(w, h)));
+        canvas.width = canvas.height = boardSize;
+        canvas.style.width = canvas.style.height = boardSize + "px";
+        laneGap = boardSize * 0.17;
+        laneLength = boardSize * 0.48;
+        const po = boardSize * 0.015 + boardSize * 0.042;
+        pockets = [
+          { x: po, y: po, r: boardSize * 0.042 },
+          { x: boardSize - po, y: po, r: boardSize * 0.042 },
+          { x: po, y: boardSize - po, r: boardSize * 0.042 },
+          { x: boardSize - po, y: boardSize - po, r: boardSize * 0.042 },
+        ];
+      }
+      window.addEventListener("resize", resize);
+      resize();
+
+      // ── BALL ──────────────────────────────────────────────────────────────────────
+      class Ball {
+        constructor(x, y, r, m, col, isS = false) {
+          Object.assign(this, {
+            x,
+            y,
+            radius: r,
+            mass: m,
+            color: col,
+            isStriker: isS,
+            vx: 0,
+            vy: 0,
+            active: true,
+          });
+        }
+        draw() {
+          if (!this.active) return;
+          if (this.isStriker && blinkOn && !blinkVis) return;
+          // shadow
+          ctx.beginPath();
+          ctx.arc(this.x + 2, this.y + 3, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(0,0,0,.2)";
+          ctx.fill();
+          // body
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.fill();
+          if (this.isStriker) {
+            if (posLocked) {
+              ctx.beginPath();
+              ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
+              ctx.strokeStyle = "#10b981";
+              ctx.lineWidth = 3;
+              ctx.stroke();
+            }
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius * 0.68, 0, Math.PI * 2);
+            ctx.fillStyle = "#3b82f6";
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius * 0.28, 0, Math.PI * 2);
+            ctx.fillStyle = "#93c5fd";
+            ctx.fill();
+          } else {
+            if (this === selCoin) {
+              ctx.beginPath();
+              ctx.arc(this.x, this.y, this.radius + 8, 0, Math.PI * 2);
+              ctx.strokeStyle = "#fbbf24";
+              ctx.lineWidth = 3;
+              ctx.setLineDash([5, 4]);
+              ctx.stroke();
+              ctx.setLineDash([]);
+            }
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius * 0.55, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(255,255,255,.22)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+        }
+        update(dt) {
+          if (!this.active) return;
+          this.vx *= 0.91;
+          this.vy *= 0.91;
+          if (Math.abs(this.vx) < 0.08) this.vx = 0;
+          if (Math.abs(this.vy) < 0.08) this.vy = 0;
+          this.x += this.vx * dt * 60;
+          this.y += this.vy * dt * 60;
+        }
+      }
+
+      // ── INIT ──────────────────────────────────────────────────────────────────────
+      function initLevel() {
+        balls = [];
+        score = 0;
+        bonus = 0;
+        timeLeft = 120;
+        shotTaken = false;
+        selCoin = null;
+        targetDeg = null;
+        quizDone = false;
+        posLocked = false;
+        lockedX = null;
+        optX = null;
+        pendingShot = null;
+        demoFired = false;
+        stopBlink();
+        hideAll();
+        updateUI();
+        const rB = boardSize * 0.025,
+          cX = boardSize / 2,
+          cY = boardSize / 2;
+        striker = new Ball(
+          cX,
+          boardSize - laneGap,
+          rB * 1.6,
+          3,
+          "#1e40af",
+          true,
+        );
+        balls.push(striker);
+        balls.push(new Ball(cX, cY, rB, 1, "#dc2626"));
+        const cols = [
+          "#f8fafc",
+          "#1e293b",
+          "#f8fafc",
+          "#1e293b",
+          "#f8fafc",
+          "#1e293b",
+          "#f8fafc",
+          "#1e293b",
+        ];
+        for (let i = 0; i < 8; i++) {
+          const a = (i * Math.PI * 2) / 8;
+          balls.push(
+            new Ball(
+              cX + Math.cos(a) * rB * 2.4,
+              cY + Math.sin(a) * rB * 2.4,
+              rB,
+              1,
+              cols[i],
+            ),
+          );
+        }
+        clearInterval(timer);
+        timer = setInterval(() => {
+          if (["PLAYING", "COIN_SELECT", "POSITION_LOCK", "QUIZ"].includes(G)) {
+            timeLeft--;
+            updateUI();
+            if (timeLeft <= 0) endGame(false);
+          }
+        }, 1000);
+      }
+      function updateUI() {
+        scEl.textContent = score;
+        bcEl.textContent = bonus;
+        tcEl.textContent = timeLeft;
+      }
+
+      // ── HIDE ALL UI ───────────────────────────────────────────────────────────────
+      function hideAll() {
+        ["demo-b", "b-pos", "qbox", "sfb", "toast", "pw"].forEach(
+          (id) => (document.getElementById(id).style.display = "none"),
+        );
+        document.getElementById("step-indicator").style.display = "none";
+        resize();
+      }
+
+      // ── STEP INDICATOR ────────────────────────────────────────────────────────────
+      function setStep(n) {
+        const si = document.getElementById("step-indicator");
+        si.style.display = "flex";
+        for (let i = 1; i <= 4; i++) {
+          const el = document.getElementById("sp" + i);
+          el.classList.remove("active", "done", "pending");
+          if (i < n) el.classList.add("done");
+          else if (i === n) el.classList.add("active");
+          else el.classList.add("pending");
+        }
+        resize();
+      }
+
+      // ── PROMPT ────────────────────────────────────────────────────────────────────
+      function prompt(m) {
+        promptEl.textContent = m;
+        promptEl.style.animation = "none";
+        promptEl.offsetHeight;
+        promptEl.style.animation = null;
+        resize();
+      }
+
+      // ── TOAST ─────────────────────────────────────────────────────────────────────
+      function toast(m, d = 2800) {
+        const e = document.getElementById("toast");
+        e.textContent = m;
+        e.style.display = "block";
+        resize();
+        clearTimeout(window._t);
+        window._t = setTimeout(() => {
+          e.style.display = "none";
+          resize();
+        }, d);
+      }
+
+      // ── BLINK ─────────────────────────────────────────────────────────────────────
+      function startBlink() {
+        blinkOn = true;
+        blinkVis = true;
+        clearInterval(blinkIv);
+        blinkIv = setInterval(() => (blinkVis = !blinkVis), 350);
+      }
+      function stopBlink() {
+        blinkOn = false;
+        blinkVis = true;
+        clearInterval(blinkIv);
+      }
+
+      // ── GEOMETRY ──────────────────────────────────────────────────────────────────
+      function nearestPocket(coin) {
+        let best = null,
+          bd = Infinity;
+        for (const p of pockets) {
+          const d = Math.hypot(coin.x - p.x, coin.y - p.y);
+          if (d < bd) {
+            bd = d;
+            best = p;
+          }
+        }
+        return best;
+      }
+
+      // Ghost ball calculation — purely from current striker.x/y, LIVE every frame
+      function getGhostBall(coin) {
+        const pk = nearestPocket(coin);
+        const dx = pk.x - coin.x,
+          dy = pk.y - coin.y,
+          len = Math.hypot(dx, dy) || 1;
+        const nx = dx / len,
+          ny = dy / len;
+        const totalR = striker.radius + coin.radius;
+        return {
+          gx: coin.x - nx * totalR,
+          gy: coin.y - ny * totalR, // ghost ball center
+          cx: coin.x - nx * coin.radius,
+          cy: coin.y - ny * coin.radius, // contact point on coin
+          nx,
+          ny,
+          pocket: pk,
+        };
+      }
+
+      function computeOptimalX(coin) {
+        const { gx } = getGhostBall(coin);
+        const lL = boardSize / 2 - laneLength / 2,
+          lR = boardSize / 2 + laneLength / 2;
+        return Math.max(lL, Math.min(lR, gx));
+      }
+
+      function computeAngle(coin) {
+        const { gx, gy } = getGhostBall(coin);
+        const dx = gx - striker.x,
+          dy = gy - striker.y;
+        let deg = Math.round((Math.atan2(-dy, dx) * 180) / Math.PI);
+        if (deg < 0) deg += 360;
+        return deg;
+      }
+
+      // ── GAME FLOW ─────────────────────────────────────────────────────────────────
+
+      // DEMO
+      function startDemo() {
+        G = "DEMO";
+        document.getElementById("demo-b").style.display = "block";
+        prompt("🎬 Watch the 3-step demo!");
+      }
+      function fireDemo() {
+        const q = balls[1];
+        if (!q || !q.active) {
+          startCoinSelect();
+          return;
+        }
+        const dx = q.x - striker.x,
+          dy = q.y - striker.y,
+          len = Math.hypot(dx, dy);
+        striker.vx = (dx / len) * 15;
+        striker.vy = (dy / len) * 15;
+        shotTaken = true;
+        demoFired = true;
+        prompt("Striker hits coin → coin pockets itself!");
+      }
+
+      // STEP 1 — Pick coin
+      function startCoinSelect() {
+        G = "COIN_SELECT";
+        selCoin = null;
+        targetDeg = null;
+        optX = null;
+        posLocked = false;
+        lockedX = null;
+        stopBlink();
+        hideAll();
+        setStep(1);
+        prompt("🎯 Step 1 — Tap any coin to select it!");
+      }
+
+      // STEP 2 — Position lock
+      function onCoinTapped(coin) {
+        selCoin = coin;
+        optX = computeOptimalX(coin);
+        G = "POSITION_LOCK";
+        startBlink();
+        document.getElementById("b-pos").style.display = "block";
+        setStep(2);
+        prompt("📍 Step 2 — Slide to the purple marker, then Lock!");
+      }
+
+      function lockPosition() {
+        posLocked = true;
+        lockedX = striker.x;
+        stopBlink();
+        document.getElementById("b-pos").style.display = "none";
+        targetDeg = computeAngle(selCoin);
+        showQuiz(targetDeg);
+        setStep(3);
+        prompt("🔒 Locked! Step 3 — Guess the angle.");
+      }
+
+      // STEP 3 — Quiz
+      function showQuiz(correct) {
+        quizDone = false;
+        document.getElementById("qq").textContent =
+          "What angle do you need to shoot at to pocket this coin?";
+        document.getElementById("qfb").textContent = "";
+        const btn = document.getElementById("qbtns");
+        btn.innerHTML = "";
+        genOpts(correct).forEach((opt) => {
+          const b = document.createElement("button");
+          b.className = "qbtn neutral";
+          b.textContent = opt + "°";
+          b.onclick = () => onQuizAnswer(opt, correct, btn);
+          btn.appendChild(b);
+        });
+        document.getElementById("qbox").style.display = "block";
+        G = "QUIZ";
+      }
+      function genOpts(c) {
+        const s = new Set([c]),
+          o = [c],
+          offs = [-45, -30, -15, 15, 30, 45];
+        while (o.length < 4) {
+          const off = offs[Math.floor(Math.random() * offs.length)];
+          const v = (((c + off) % 360) + 360) % 360;
+          if (!s.has(v)) {
+            s.add(v);
+            o.push(v);
+          }
+        }
+        return o.sort(() => Math.random() - 0.5);
+      }
+      function onQuizAnswer(chosen, correct, btn) {
+        if (quizDone) return;
+        quizDone = true;
+        const diff = Math.abs(chosen - correct),
+          ok = diff <= 5 || 360 - diff <= 5;
+        const fb = document.getElementById("qfb");
+        btn.querySelectorAll(".qbtn").forEach((b) => {
+          const v = parseInt(b.textContent),
+            d = Math.abs(v - correct);
+          b.className =
+            "qbtn " + (d <= 5 || 360 - d <= 5 ? "correct" : "wrong");
+          b.disabled = true;
+        });
+        if (ok) {
+          bonus += 10;
+          updateUI();
+          fb.style.color = "#6ee7b7";
+          fb.textContent = `✓ Correct! +10 bonus ★  Shoot at ${correct}°!`;
+        } else {
+          fb.style.color = "#fca5a5";
+          fb.textContent = `Correct was ${correct}°. Follow the blue guide line!`;
+        }
+        setTimeout(() => {
+          document.getElementById("qbox").style.display = "none";
+          G = "PLAYING";
+          setStep(4);
+          prompt(`🏹 Step 4 — Pull striker backward. Aim at ${correct}°!`);
+        }, 2300);
+      }
+
+      // SHOT FEEDBACK
+      function showShotFeedback(shot, target, pocketed) {
+        const e = document.getElementById("sfb");
+        const t = document.getElementById("sf-t"),
+          b = document.getElementById("sf-b"),
+          a = document.getElementById("sf-a");
+        const err = Math.min(
+          Math.abs(shot - target),
+          360 - Math.abs(shot - target),
+        );
+        if (pocketed) {
+          t.textContent = "🎉 Pocketed!";
+          t.style.color = "#34d399";
+          b.textContent = "Perfect geometry!";
+        } else if (err <= 14) {
+          t.textContent = "😅 So Close!";
+          t.style.color = "#fbbf24";
+          b.textContent = `Only ${err}° off — try again!`;
+        } else {
+          t.textContent = "🔄 Keep Trying!";
+          t.style.color = "#f87171";
+          b.textContent = `${err}° off — slide striker closer to the purple marker.`;
+        }
+        a.textContent =
+          target !== null
+            ? `Shot: ${shot}°  |  Target: ${target}°`
+            : `Shot: ${shot}°`;
+        e.style.display = "block";
+        clearTimeout(window._sf);
+        window._sf = setTimeout(() => (e.style.display = "none"), 2700);
+      }
+
+      // ── AIM ASSIST SNAP ───────────────────────────────────────────────────────────
+      // Softly corrects the velocity direction toward the ghost ball if within 22px.
+      // This is the key fix: even if position is slightly off, close shots still pocket.
+      function applyAimAssist() {
+        if (!selCoin || !selCoin.active) return;
+        const { gx, gy } = getGhostBall(selCoin);
+        const speed = Math.hypot(striker.vx, striker.vy);
+        if (speed < 0.5) return;
+        const dx = striker.vx / speed,
+          dy = striker.vy / speed;
+        const toDx = gx - striker.x,
+          toDy = gy - striker.y,
+          toDist = Math.hypot(toDx, toDy);
+        if (toDist < 1) return;
+        const toNx = toDx / toDist,
+          toNy = toDy / toDist;
+        // Perpendicular distance from ghost ball to current shot ray
+        const perp = Math.abs(dx * toNy - dy * toNx) * toDist;
+        const dotFwd = dx * toNx + dy * toNy;
+        if (dotFwd > 0.3 && perp < 22) {
+          const blend = Math.max(0, Math.min(1, (1 - perp / 22) * 0.85));
+          const nx = dx + (toNx - dx) * blend,
+            ny = dy + (toNy - dy) * blend;
+          const nl = Math.hypot(nx, ny) || 1;
+          striker.vx = (nx / nl) * speed;
+          striker.vy = (ny / nl) * speed;
+        }
+      }
+
+      // ── DRAWING ───────────────────────────────────────────────────────────────────
+      function arcAngles(cx, cy, r, a1, a2, col, lw = 3) {
+        let d = a2 - a1;
+        while (d <= -Math.PI) d += Math.PI * 2;
+        while (d > Math.PI) d -= Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, a1, a1 + d, d < 0);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = lw;
+        ctx.stroke();
+      }
+      function wallRayDist(ox, oy, dx, dy, mr = 0) {
+        const mn = boardSize * 0.015 + mr,
+          mx = boardSize - boardSize * 0.015 - mr;
+        let t = Infinity;
+        if (dx < 0) t = Math.min(t, (mn - ox) / dx);
+        else if (dx > 0) t = Math.min(t, (mx - ox) / dx);
+        if (dy < 0) t = Math.min(t, (mn - oy) / dy);
+        else if (dy > 0) t = Math.min(t, (mx - oy) / dy);
+        return t;
+      }
+      function firstCoin(ox, oy, dx, dy, maxD) {
+        let best = null;
+        for (const b of balls) {
+          if (!b.active || b.isStriker) continue;
+          const tbx = b.x - ox,
+            tby = b.y - oy,
+            proj = tbx * dx + tby * dy;
+          if (proj <= 0 || proj > maxD) continue;
+          const dsq = tbx * tbx + tby * tby - proj * proj,
+            hr = striker.radius + b.radius;
+          if (dsq > hr * hr) continue;
+          const off = Math.sqrt(hr * hr - dsq);
+          let t = proj - off;
+          if (t <= 0) t = proj + off;
+          if (t <= 0 || t > maxD) continue;
+          if (!best || t < best.t) {
+            const hx = ox + dx * t,
+              hy = oy + dy * t,
+              nv = { x: hx - b.x, y: hy - b.y },
+              nl = Math.hypot(nv.x, nv.y) || 1;
+            best = {
+              ball: b,
+              t,
+              hitX: hx,
+              hitY: hy,
+              normalX: nv.x / nl,
+              normalY: nv.y / nl,
+            };
+          }
+        }
+        return best;
+      }
+
+      // GUIDE — recomputed every frame
+      function drawGuide() {
+        if (!selCoin || !selCoin.active) return;
+        const coin = selCoin;
+        const { gx, gy, cx, cy, nx, ny, pocket } = getGhostBall(coin);
+
+        // 1. Coin → Pocket yellow dashed
+        ctx.save();
+        ctx.setLineDash([8, 6]);
+        ctx.strokeStyle = "rgba(251,191,36,.85)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(coin.x, coin.y);
+        ctx.lineTo(pocket.x, pocket.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const pA = Math.atan2(pocket.y - coin.y, pocket.x - coin.x);
+        const ax = pocket.x - pocket.r * 1.7 * Math.cos(pA),
+          ay = pocket.y - pocket.r * 1.7 * Math.sin(pA);
+        ctx.beginPath();
+        ctx.moveTo(ax - 18 * Math.cos(pA - 0.4), ay - 18 * Math.sin(pA - 0.4));
+        ctx.lineTo(ax, ay);
+        ctx.lineTo(ax - 18 * Math.cos(pA + 0.4), ay - 18 * Math.sin(pA + 0.4));
+        ctx.strokeStyle = "#fbbf24";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+
+        // 2. CONTACT DOT — glowing red dot on coin surface
+        // This is the key visual: tells kid exactly WHERE to hit the coin
+        ctx.save();
+        const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, 14);
+        grd.addColorStop(0, "rgba(239,68,68,1)");
+        grd.addColorStop(0.5, "rgba(239,68,68,.5)");
+        grd.addColorStop(1, "rgba(239,68,68,0)");
+        ctx.beginPath();
+        ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+        ctx.fillStyle = grd;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#ef4444";
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Label (offset away from coin center)
+        const lox = -nx * 26,
+          loy = -ny * 26;
+        ctx.fillStyle = "#ef4444";
+        ctx.font = "bold 11px Nunito";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("hit here", cx + lox, cy + loy);
+        ctx.restore();
+
+        // 3. Ghost ball dashed circle
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.arc(gx, gy, striker.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(96,165,250,.9)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#60a5fa";
+        ctx.font = "bold 11px Nunito";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("aim here", gx, gy - striker.radius - 9);
+        ctx.restore();
+
+        // 4. Optimal X marker on lane (pulsing triangle)
+        if (!posLocked && optX !== null) {
+          const lY = boardSize - laneGap,
+            t = Date.now();
+          const pulse = (Math.sin(t * 0.006) + 1) * 0.5;
+          ctx.save();
+          // Pulsing ring at optimal spot
+          ctx.beginPath();
+          ctx.arc(optX, lY, 10 + pulse * 4, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(167,139,250,${0.45 + pulse * 0.45})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          // Triangle arrow pointing down
+          ctx.beginPath();
+          ctx.moveTo(optX, lY - 26);
+          ctx.lineTo(optX - 9, lY - 40);
+          ctx.lineTo(optX + 9, lY - 40);
+          ctx.closePath();
+          ctx.fillStyle = "#a78bfa";
+          ctx.fill();
+          // Dashed vertical line
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = "rgba(167,139,250,.6)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(optX, lY - 22);
+          ctx.lineTo(optX, lY + 22);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = "#a78bfa";
+          ctx.font = "bold 11px Nunito";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("best spot", optX, lY - 50);
+          ctx.restore();
+        }
+
+        // 5. Striker → Ghost blue dashed line + LIVE angle arc
+        const sgDx = gx - striker.x,
+          sgDy = gy - striker.y,
+          physA = Math.atan2(sgDy, sgDx);
+        const mathR = Math.atan2(-sgDy, sgDx);
+        let liveDeg = Math.round((mathR * 180) / Math.PI);
+        if (liveDeg < 0) liveDeg += 360;
+        targetDeg = liveDeg; // live update
+
+        ctx.save();
+        ctx.setLineDash([8, 6]);
+        ctx.strokeStyle = "rgba(96,165,250,.7)";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(striker.x, striker.y);
+        ctx.lineTo(gx, gy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Arc from horizontal to shot direction
+        ctx.beginPath();
+        ctx.arc(striker.x, striker.y, 44, 0, physA, physA < 0);
+        ctx.strokeStyle = "rgba(251,191,36,.9)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        // Degree label on arc midpoint
+        const mA = physA / 2;
+        ctx.fillStyle = "#fbbf24";
+        ctx.font = "bold 19px Nunito";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(
+          liveDeg + "°",
+          striker.x + Math.cos(mA) * 66,
+          striker.y + Math.sin(mA) * 66,
+        );
+        ctx.restore();
+      }
+
+      // AIM LINE (during pull-back drag)
+      function drawAimLine() {
+        if (iMode !== "AIM") return;
+        const dx = dStart.x - dCur.x,
+          dy = dStart.y - dCur.y,
+          pull = Math.hypot(dx, dy);
+        if (pull < 10) return;
+        const physR = Math.atan2(dy, dx),
+          mathR2 = Math.atan2(-dy, dx);
+        let aDeg = Math.round((mathR2 * 180) / Math.PI);
+        if (aDeg < 0) aDeg += 360;
+
+        ctx.save();
+        // Horizontal ref
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = "rgba(0,0,0,.3)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(striker.x - 50, striker.y);
+        ctx.lineTo(striker.x + 50, striker.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Red arc (current aim angle)
+        ctx.beginPath();
+        ctx.arc(striker.x, striker.y, 44, 0, physR, physR < 0);
+        ctx.strokeStyle = "#ef4444";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        const mA = physR / 2;
+        ctx.fillStyle = "#ef4444";
+        ctx.font = "bold 18px Nunito";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(
+          aDeg + "°",
+          striker.x + Math.cos(mA) * 66,
+          striker.y + Math.sin(mA) * 66,
+        );
+        // On-target tick
+        if (targetDeg !== null) {
+          const diff = Math.abs(aDeg - targetDeg),
+            close = diff <= 10 || 360 - diff <= 10;
+          if (close) {
+            ctx.fillStyle = "#10b981";
+            ctx.font = "bold 13px Nunito";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "alphabetic";
+            ctx.fillText("✓ On target!", striker.x, striker.y - 58);
+          }
+        }
+        ctx.restore();
+
+        // Aim ray
+        const dirX = dx / pull,
+          dirY = dy / pull;
+        const mn = boardSize * 0.015,
+          mxB = boardSize - mn,
+          r = striker.radius;
+        let tMin = Infinity,
+          hnX = 0,
+          hnY = 0;
+        if (dirX < 0) {
+          const t = (mn + r - striker.x) / dirX;
+          if (t > 0 && t < tMin) {
+            tMin = t;
+            hnX = 1;
+            hnY = 0;
+          }
+        } else if (dirX > 0) {
+          const t = (mxB - r - striker.x) / dirX;
+          if (t > 0 && t < tMin) {
+            tMin = t;
+            hnX = -1;
+            hnY = 0;
+          }
+        }
+        if (dirY < 0) {
+          const t = (mn + r - striker.y) / dirY;
+          if (t > 0 && t < tMin) {
+            tMin = t;
+            hnX = 0;
+            hnY = 1;
+          }
+        } else if (dirY > 0) {
+          const t = (mxB - r - striker.y) / dirY;
+          if (t > 0 && t < tMin) {
+            tMin = t;
+            hnX = 0;
+            hnY = -1;
+          }
+        }
+        const vpl = Math.min(pull * 4, tMin);
+        const ch = firstCoin(striker.x, striker.y, dirX, dirY, vpl);
+        let ex = striker.x + dirX * vpl,
+          ey = striker.y + dirY * vpl;
+        if (ch) {
+          ex = ch.hitX;
+          ey = ch.hitY;
+        }
+        ctx.save();
+        ctx.setLineDash([8, 8]);
+        ctx.strokeStyle = "#ef4444";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(striker.x, striker.y);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        if (ch) {
+          const cdX = -ch.normalX,
+            cdY = -ch.normalY,
+            cdA = Math.atan2(cdY, cdX),
+            inA = Math.atan2(dirY, dirX);
+          ctx.beginPath();
+          ctx.arc(ch.hitX, ch.hitY, Math.max(4, r * 0.25), 0, Math.PI * 2);
+          ctx.fillStyle = "#ef4444";
+          ctx.fill();
+          const nd = dirX * ch.normalX + dirY * ch.normalY;
+          let tX = dirX - nd * ch.normalX,
+            tY = dirY - nd * ch.normalY;
+          const tL = Math.hypot(tX, tY);
+          if (tL > 0.06) {
+            tX /= tL;
+            tY /= tL;
+          }
+          const cwd = wallRayDist(
+            ch.ball.x,
+            ch.ball.y,
+            cdX,
+            cdY,
+            ch.ball.radius,
+          );
+          const ct = Math.min(pull * 2.2, cwd * 0.85, boardSize * 0.32);
+          ctx.setLineDash([7, 7]);
+          ctx.strokeStyle = "#22c55e";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(ch.ball.x, ch.ball.y);
+          ctx.lineTo(ch.ball.x + cdX * ct, ch.ball.y + cdY * ct);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          if (tL > 0.06) {
+            const swd = wallRayDist(ch.hitX, ch.hitY, tX, tY, r);
+            const st = Math.min(pull * 1.6, swd * 0.8, boardSize * 0.22);
+            ctx.setLineDash([7, 7]);
+            ctx.strokeStyle = "#38bdf8";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(ch.hitX, ch.hitY);
+            ctx.lineTo(ch.hitX + tX * st, ch.hitY + tY * st);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            arcAngles(
+              ch.hitX,
+              ch.hitY,
+              Math.max(22, r * 1.3),
+              cdA,
+              Math.atan2(tY, tX),
+              "rgba(56,189,248,.9)",
+            );
+          }
+          arcAngles(
+            ch.hitX,
+            ch.hitY,
+            Math.max(16, r),
+            cdA,
+            inA,
+            "rgba(250,204,21,.9)",
+          );
+          const hDot = Math.max(-1, Math.min(1, dirX * cdX + dirY * cdY));
+          const hDeg = Math.round((Math.acos(hDot) * 180) / Math.PI);
+          ctx.fillStyle = "#111827";
+          ctx.font = "bold 15px Nunito";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(hDeg + "°", ch.hitX + 22, ch.hitY - 14);
+        } else if (vpl === tMin) {
+          // Wall bounce + i=r
+          const dot = dirX * hnX + dirY * hnY,
+            rX = dirX - 2 * dot * hnX,
+            rY = dirY - 2 * dot * hnY,
+            bL = pull * 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = "#10b981";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(ex, ey);
+          ctx.lineTo(ex + hnX * 36, ey + hnY * 36);
+          ctx.stroke();
+          ctx.setLineDash([8, 8]);
+          ctx.strokeStyle = "#0ea5e9";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(ex, ey);
+          ctx.lineTo(ex + rX * bL, ey + rY * bL);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          const aN = Math.atan2(hnY, hnX);
+          arcAngles(
+            ex,
+            ey,
+            28,
+            aN,
+            Math.atan2(-dirY, -dirX),
+            "rgba(239,68,68,.8)",
+          );
+          arcAngles(ex, ey, 28, aN, Math.atan2(rY, rX), "rgba(14,165,233,.8)");
+          const dotIn = -dirX * hnX - dirY * hnY;
+          const dv = Math.round(
+            (Math.acos(Math.max(-1, Math.min(1, dotIn))) * 180) / Math.PI,
+          );
+          ctx.fillStyle = "#111827";
+          ctx.font = "bold 20px Nunito";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(dv + "°", ex + hnX * 54, ey + hnY * 54);
+          ctx.fillStyle = "#065f46";
+          ctx.font = "bold 13px Nunito";
+          ctx.fillText("i = r", ex + hnX * 80, ey + hnY * 80);
+        }
+        ctx.setLineDash([]);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+      }
+
+      // Mini protractor
+      function drawMiniProtractor() {
+        const px = boardSize - 44,
+          py = boardSize - 44,
+          pr = 30;
+        ctx.save();
+        ctx.globalAlpha = 0.48;
+        ctx.beginPath();
+        ctx.arc(px, py, pr, Math.PI, 0);
+        ctx.fillStyle = "rgba(255,255,220,.92)";
+        ctx.fill();
+        ctx.strokeStyle = "#92400e";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        for (let a = 0; a <= 180; a += 30) {
+          const ra = ((180 - a) * Math.PI) / 180;
+          ctx.beginPath();
+          ctx.moveTo(
+            px + Math.cos(ra) * (pr - 5),
+            py - Math.sin(ra) * (pr - 5),
+          );
+          ctx.lineTo(px + Math.cos(ra) * pr, py - Math.sin(ra) * pr);
+          ctx.strokeStyle = "#92400e";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          if (a % 60 === 0) {
+            ctx.fillStyle = "#92400e";
+            ctx.font = "bold 8px Nunito";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(
+              a,
+              px + Math.cos(ra) * (pr - 13),
+              py - Math.sin(ra) * (pr - 13),
+            );
+          }
+        }
+        ctx.beginPath();
+        ctx.moveTo(px - pr, py);
+        ctx.lineTo(px + pr, py);
+        ctx.strokeStyle = "#92400e";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+      }
+
+      // Power bar
+      function updatePower(pull) {
+        const pct = Math.min(100, Math.round((pull / 120) * 100));
+        pwFill.style.width = pct + "%";
+        let c, l;
+        if (pct < 20) {
+          c = "#ef4444";
+          l = "Too soft!";
+        } else if (pct < 55) {
+          c = "#22c55e";
+          l = "Good power ✓";
+        } else if (pct < 80) {
+          c = "#f59e0b";
+          l = "Strong!";
+        } else {
+          c = "#ef4444";
+          l = "Too hard!";
+        }
+        pwFill.style.background = c;
+        pwLbl.style.color = c;
+        pwLbl.textContent = l;
+      }
+
+      // ── PHYSICS ───────────────────────────────────────────────────────────────────
+      function handleCollisions() {
+        const mn = boardSize * 0.015,
+          mx = boardSize - mn;
+        balls.forEach((b) => {
+          if (!b.active) return;
+          let hw = false;
+          if (b.x - b.radius < mn) {
+            b.x = mn + b.radius;
+            b.vx *= -1;
+            hw = true;
+          } else if (b.x + b.radius > mx) {
+            b.x = mx - b.radius;
+            b.vx *= -1;
+            hw = true;
+          }
+          if (b.y - b.radius < mn) {
+            b.y = mn + b.radius;
+            b.vy *= -1;
+            hw = true;
+          } else if (b.y + b.radius > mx) {
+            b.y = mx - b.radius;
+            b.vy *= -1;
+            hw = true;
+          }
+          if (hw && b.isStriker)
+            toast("Bounce! Angle in = Angle out (i = r) 📐");
+        });
+        for (let i = 0; i < balls.length; i++)
+          for (let j = i + 1; j < balls.length; j++) {
+            const b1 = balls[i],
+              b2 = balls[j];
+            if (!b1.active || !b2.active) continue;
+            const dx = b2.x - b1.x,
+              dy = b2.y - b1.y,
+              dist = Math.hypot(dx, dy),
+              md = b1.radius + b2.radius;
+            if (dist < md) {
+              const ov = md - dist,
+                nx = dx / dist,
+                ny = dy / dist;
+              b1.x -= nx * ov * 0.5;
+              b2.x += nx * ov * 0.5;
+              b1.y -= ny * ov * 0.5;
+              b2.y += ny * ov * 0.5;
+              const kx = b1.vx - b2.vx,
+                ky = b1.vy - b2.vy;
+              const p =
+                ((2 * (nx * kx + ny * ky)) / (b1.mass + b2.mass)) * 0.85;
+              b1.vx -= p * b2.mass * nx;
+              b1.vy -= p * b2.mass * ny;
+              b2.vx += p * b1.mass * nx;
+              b2.vy += p * b1.mass * ny;
+            }
+          }
+        balls.forEach((b) => {
+          if (!b.active) return;
+          for (const p of pockets) {
+            if (Math.hypot(b.x - p.x, b.y - p.y) < p.r) {
+              b.active = false;
+              if (b.isStriker) {
+                b.vx = 0;
+                b.vy = 0;
+                prompt("😬 Striker fell in! Mind your power.");
+              } else {
+                score++;
+                updateUI();
+                if (pendingShot !== null) {
+                  showShotFeedback(pendingShot, targetDeg, true);
+                  pendingShot = null;
+                }
+                toast("🎉 Coin pocketed! Great angle ★");
+                prompt("Pocketed! 🎯");
+                if (score >= 9) endGame(true);
+              }
+              break;
+            }
+          }
+        });
+      }
+
+      // ── BOARD ─────────────────────────────────────────────────────────────────────
+      function drawBoard() {
+        ctx.clearRect(0, 0, boardSize, boardSize);
+        const C = boardSize / 2,
+          lc = "#6b3a1f";
+        ctx.strokeStyle = lc;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(C, C, boardSize * 0.18, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(C, C, boardSize * 0.15, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(C, C, boardSize * 0.02, 0, Math.PI * 2);
+        ctx.fillStyle = "#dc2626";
+        ctx.fill();
+        const lR = boardSize * 0.035;
+        function lane(cx, cy, h) {
+          ctx.strokeStyle = lc;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          if (h) {
+            ctx.arc(cx - laneLength / 2, cy, lR, Math.PI / 2, Math.PI * 1.5);
+            ctx.lineTo(cx + laneLength / 2, cy - lR);
+            ctx.arc(cx + laneLength / 2, cy, lR, -Math.PI / 2, Math.PI / 2);
+            ctx.closePath();
+          } else {
+            ctx.arc(cx, cy - laneLength / 2, lR, Math.PI, 0);
+            ctx.lineTo(cx + lR, cy + laneLength / 2);
+            ctx.arc(cx, cy + laneLength / 2, lR, 0, Math.PI);
+            ctx.closePath();
+          }
+          ctx.stroke();
+          const cR = lR * 0.85,
+            yR = cR * 0.7;
+          const d = (px, py) => {
+            ctx.beginPath();
+            ctx.arc(px, py, cR, 0, Math.PI * 2);
+            ctx.fillStyle = "#fef3c7";
+            ctx.fill();
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = lc;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(px, py, yR, 0, Math.PI * 2);
+            ctx.fillStyle = "#eab308";
+            ctx.fill();
+          };
+          h
+            ? [d(cx - laneLength / 2, cy), d(cx + laneLength / 2, cy)]
+            : [d(cx, cy - laneLength / 2), d(cx, cy + laneLength / 2)];
+        }
+        lane(C, laneGap, true);
+        lane(C, boardSize - laneGap, true);
+        lane(laneGap, C, false);
+        lane(boardSize - laneGap, C, false);
+        pockets.forEach((p) => {
+          const ang = Math.atan2(C - p.y, C - p.x);
+          const sx = p.x + Math.cos(ang) * (p.r + boardSize * 0.02),
+            sy = p.y + Math.sin(ang) * (p.r + boardSize * 0.02);
+          const ex = p.x + Math.cos(ang) * (p.r + boardSize * 0.12),
+            ey = p.y + Math.sin(ang) * (p.r + boardSize * 0.12);
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(ex, ey);
+          ctx.strokeStyle = lc;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(ex, ey, boardSize * 0.008, 0, Math.PI * 2);
+          ctx.fillStyle = lc;
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = "#0d1117";
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = lc;
+          ctx.stroke();
+        });
+      }
+
+      // ── INPUT ─────────────────────────────────────────────────────────────────────
+      function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const st = window.getComputedStyle(canvas);
+        const bl = parseFloat(st.borderLeftWidth) || 0,
+          bt = parseFloat(st.borderTopWidth) || 0;
+        const br = parseFloat(st.borderRightWidth) || 0,
+          bb = parseFloat(st.borderBottomWidth) || 0;
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: (cx - rect.left - bl) * (boardSize / (rect.width - bl - br)),
+          y: (cy - rect.top - bt) * (boardSize / (rect.height - bt - bb)),
+        };
+      }
+      function moving() {
+        return balls.some(
+          (b) => b.active && (Math.abs(b.vx) > 0.06 || Math.abs(b.vy) > 0.06),
+        );
+      }
+      function resetStriker() {
+        if (!striker.active) striker.active = true;
+        striker.x = lockedX !== null ? lockedX : boardSize / 2;
+        striker.y = boardSize - laneGap;
+        striker.vx = 0;
+        striker.vy = 0;
+      }
+
+      canvas.addEventListener("mousedown", onDown);
+      canvas.addEventListener("touchstart", onDown, { passive: false });
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("touchmove", onMove, { passive: false });
+      window.addEventListener("mouseup", onUp);
+      window.addEventListener("touchend", onUp, { passive: false });
+      window.addEventListener("touchcancel", onUp, { passive: false });
+
+      function onDown(e) {
+        if (e.cancelable) e.preventDefault();
+        const pos = getPos(e);
+        if (G === "COIN_SELECT") {
+          for (const b of balls) {
+            if (!b.active || b.isStriker) continue;
+            if (Math.hypot(pos.x - b.x, pos.y - b.y) < b.radius * 2.8) {
+              onCoinTapped(b);
+              return;
+            }
+          }
+          return;
+        }
+        if (G === "POSITION_LOCK") {
+          if (
+            Math.hypot(pos.x - striker.x, pos.y - striker.y) <
+            striker.radius * 3.5
+          ) {
+            interacting = true;
+            iMode = "POSITION";
+            dStart = pos;
+            dCur = pos;
+          }
+          return;
+        }
+        if (G !== "PLAYING" || moving() || !striker.active) return;
+        if (
+          Math.hypot(pos.x - striker.x, pos.y - striker.y) <
+          striker.radius * 3.5
+        ) {
+          interacting = true;
+          iMode = "NONE";
+          dStart = pos;
+          dCur = pos;
+        }
+      }
+      function onMove(e) {
+        if (!interacting) return;
+        if (e.cancelable) e.preventDefault();
+        const pos = getPos(e);
+        if (G === "PLAYING" && iMode === "NONE") {
+          const dx = pos.x - dStart.x,
+            dy = pos.y - dStart.y;
+          if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            // After position lock, only allow AIM
+            if (posLocked || Math.abs(dy) >= Math.abs(dx)) {
+              iMode = "AIM";
+              dStart = pos;
+            } else iMode = "POSITION";
+          }
+        }
+        if (iMode === "POSITION" || G === "POSITION_LOCK") {
+          const lL = boardSize / 2 - laneLength / 2,
+            lR = boardSize / 2 + laneLength / 2;
+          striker.x = Math.max(lL, Math.min(lR, pos.x));
+          dCur = pos;
+        }
+        if (iMode === "AIM") {
+          dCur = pos;
+          const pull = Math.hypot(dStart.x - pos.x, dStart.y - pos.y);
+          if (pwDiv.style.display !== "block") {
+            pwDiv.style.display = "block";
+            resize();
+          }
+          updatePower(pull);
+        }
+      }
+      function onUp(e) {
+        if (!interacting) return;
+        if (e.cancelable) e.preventDefault();
+        if (iMode === "AIM" && G === "PLAYING") {
+          const dx = dStart.x - dCur.x,
+            dy = dStart.y - dCur.y;
+          striker.vx = Math.max(-60, Math.min(60, dx * 0.28));
+          striker.vy = Math.max(-60, Math.min(60, dy * 0.28));
+          if (Math.abs(striker.vx) > 0.1 || Math.abs(striker.vy) > 0.1) {
+            const mr = Math.atan2(-dy, dx);
+            let deg = Math.round((mr * 180) / Math.PI);
+            if (deg < 0) deg += 360;
+            pendingShot = deg;
+            applyAimAssist();
+            shotTaken = true;
+          }
+        }
+        if (pwDiv.style.display !== "none") {
+          pwDiv.style.display = "none";
+          resize();
+        }
+        interacting = false;
+        iMode = "NONE";
+      }
+
+      document.getElementById("lockbtn").addEventListener("click", () => {
+        if (G === "POSITION_LOCK") lockPosition();
+      });
+
+      // ── GAME LOOP ─────────────────────────────────────────────────────────────────
+      function loop(ts) {
+        if (!lastTime) lastTime = ts;
+        const dt = Math.min((ts - lastTime) / 1000, 0.033);
+        lastTime = ts;
+
+        if (G === "DEMO") {
+          if (!demoFired && !moving()) {
+            if (!window._dT) {
+              window._dT = setTimeout(() => {
+                fireDemo();
+                window._dT = null;
+              }, 1400);
+            }
+          }
+          balls.forEach((b) => b.update(dt));
+          handleCollisions();
+          if (demoFired && !moving()) demoFired = false;
+        }
+        if (["PLAYING", "COIN_SELECT", "POSITION_LOCK", "QUIZ"].includes(G)) {
+          balls.forEach((b) => b.update(dt));
+          handleCollisions();
+          if (shotTaken && !moving()) {
+            if (pendingShot !== null) {
+              showShotFeedback(pendingShot, targetDeg, false);
+              pendingShot = null;
+            }
+            shotTaken = false;
+            selCoin = null;
+            targetDeg = null;
+            posLocked = false;
+            lockedX = null;
+            setTimeout(() => {
+              resetStriker();
+              startCoinSelect();
+            }, 2900);
+          }
+        }
+
+        drawBoard();
+        drawMiniProtractor();
+        if (["COIN_SELECT", "POSITION_LOCK", "QUIZ", "PLAYING"].includes(G))
+          drawGuide();
+        drawAimLine();
+        balls.forEach((b) => b.draw());
+        requestAnimationFrame(loop);
+      }
+
+      // ── GAME FLOW ─────────────────────────────────────────────────────────────────
+      function startGame() {
+        document.getElementById("menu").style.display = "none";
+        document.getElementById("gover").style.display = "none";
+        initLevel();
+        startDemo();
+      }
+      function endGame(win) {
+        G = "GAMEOVER";
+        clearInterval(timer);
+        stopBlink();
+        hideAll();
+        const go = document.getElementById("gover");
+        go.style.display = "block";
+        const t = document.getElementById("et");
+        if (win) {
+          t.textContent = "🏆 Math Master!";
+          t.style.color = "#10b981";
+          document.getElementById("em").textContent =
+            `Board cleared with ${timeLeft}s left!`;
+        } else {
+          t.textContent = "⏱ Time's Up!";
+          t.style.color = "#ef4444";
+          document.getElementById("em").textContent =
+            `You pocketed ${score} coins — great try!`;
+        }
+        document.getElementById("eb").textContent = `Angle bonus: ${bonus} ⭐`;
+      }
+
+      document.getElementById("start-btn").addEventListener("click", startGame);
+      document
+        .getElementById("restart-btn")
+        .addEventListener("click", startGame);
+      document.getElementById("demo-skip").addEventListener("click", () => {
+        document.getElementById("demo-b").style.display = "none";
+        demoFired = false;
+        initLevel();
+        G = "COIN_SELECT";
+        startCoinSelect();
+        prompt("🎯 Step 1 — Tap any coin to begin!");
+      });
+
+      requestAnimationFrame(loop);
+    </script>
   </body>
 </html>

@@ -13,7 +13,7 @@ const timeEl = document.getElementById("time-display");
 let gameState = "MENU"; // MENU, PLAYING, GAMEOVER
 let score = 0;
 let targetScore = 10;
-let timeLeft = 60;
+let timeLeft = 60*5;
 let timerInterval;
 let boardSize = 0;
 let lastTime = 0;
@@ -168,7 +168,7 @@ function initLevel() {
   balls = [];
   score = 0;
   targetScore = 9; // Adjusted for the fewer number of coins
-  timeLeft = 60;
+  timeLeft = 60*5;
   shotTaken = false;
   updateUI();
 
@@ -256,11 +256,13 @@ function getMousePos(e) {
 canvas.addEventListener("mousedown", startInteraction);
 canvas.addEventListener("touchstart", startInteraction, { passive: false });
 
-canvas.addEventListener("mousemove", moveInteraction);
-canvas.addEventListener("touchmove", moveInteraction, { passive: false });
+// Listen globally so dragging continues even when pointer leaves the board.
+window.addEventListener("mousemove", moveInteraction);
+window.addEventListener("touchmove", moveInteraction, { passive: false });
 
-canvas.addEventListener("mouseup", endInteraction);
-canvas.addEventListener("touchend", endInteraction);
+window.addEventListener("mouseup", endInteraction);
+window.addEventListener("touchend", endInteraction, { passive: false });
+window.addEventListener("touchcancel", endInteraction, { passive: false });
 
 function isStrikerMoving() {
   return Math.abs(striker.vx) > 0.1 || Math.abs(striker.vy) > 0.1;
@@ -268,7 +270,7 @@ function isStrikerMoving() {
 
 function startInteraction(e) {
   if (gameState !== "PLAYING" || isStrikerMoving() || !striker.active) return;
-  e.preventDefault();
+  if (e.cancelable) e.preventDefault();
   const pos = getMousePos(e);
 
   // Check if clicked near striker
@@ -283,7 +285,7 @@ function startInteraction(e) {
 
 function moveInteraction(e) {
   if (!isInteracting) return;
-  e.preventDefault();
+  if (e.cancelable) e.preventDefault();
   const pos = getMousePos(e);
 
   // Decide mode based on initial movement direction
@@ -315,7 +317,7 @@ function moveInteraction(e) {
 
 function endInteraction(e) {
   if (!isInteracting) return;
-  e.preventDefault();
+  if (e.cancelable) e.preventDefault();
 
   if (interactionMode === "AIM") {
     // Calculate aim vector (opposite of drag)
@@ -363,6 +365,73 @@ function getMidAngle(a1, a2) {
   while (diff <= -Math.PI) diff += Math.PI * 2;
   while (diff > Math.PI) diff -= Math.PI * 2;
   return a1 + diff / 2;
+}
+
+function getWallRayDistance(originX, originY, dirX, dirY, movingRadius = 0) {
+  const wallPadding = boardSize * 0.015;
+  const minPos = wallPadding + movingRadius;
+  const maxPos = boardSize - wallPadding - movingRadius;
+  let tMin = Infinity;
+
+  if (dirX < 0) {
+    const t = (minPos - originX) / dirX;
+    if (t > 0) tMin = Math.min(tMin, t);
+  } else if (dirX > 0) {
+    const t = (maxPos - originX) / dirX;
+    if (t > 0) tMin = Math.min(tMin, t);
+  }
+
+  if (dirY < 0) {
+    const t = (minPos - originY) / dirY;
+    if (t > 0) tMin = Math.min(tMin, t);
+  } else if (dirY > 0) {
+    const t = (maxPos - originY) / dirY;
+    if (t > 0) tMin = Math.min(tMin, t);
+  }
+
+  return tMin;
+}
+
+function findFirstCoinOnTrajectory(originX, originY, dirX, dirY, maxDistance) {
+  let nearestHit = null;
+
+  for (const ball of balls) {
+    if (!ball.active || ball.isStriker) continue;
+
+    const toBallX = ball.x - originX;
+    const toBallY = ball.y - originY;
+    const projection = toBallX * dirX + toBallY * dirY;
+    if (projection <= 0 || projection > maxDistance) continue;
+
+    const distSqFromRay = toBallX * toBallX + toBallY * toBallY - projection * projection;
+    const hitRadius = striker.radius + ball.radius;
+    const hitRadiusSq = hitRadius * hitRadius;
+    if (distSqFromRay > hitRadiusSq) continue;
+
+    const offset = Math.sqrt(hitRadiusSq - distSqFromRay);
+    let tHit = projection - offset;
+    if (tHit <= 0) tHit = projection + offset;
+    if (tHit <= 0 || tHit > maxDistance) continue;
+
+    if (!nearestHit || tHit < nearestHit.t) {
+      const hitX = originX + dirX * tHit;
+      const hitY = originY + dirY * tHit;
+      const normalVecX = hitX - ball.x;
+      const normalVecY = hitY - ball.y;
+      const normalLen = Math.hypot(normalVecX, normalVecY) || 1;
+
+      nearestHit = {
+        ball,
+        t: tHit,
+        hitX,
+        hitY,
+        normalX: normalVecX / normalLen,
+        normalY: normalVecY / normalLen,
+      };
+    }
+  }
+
+  return nearestHit;
 }
 
 // --- CORE TEACHING FEATURE: Educational Trajectory & Angles ---
@@ -454,8 +523,14 @@ function drawTrajectoryAndAngles(ctx) {
 
   // Limit trajectory length visually based on pull power
   const visualPowerLimit = Math.min(pullDistance * 4, tMin);
-  const endX = simX + dirX * visualPowerLimit;
-  const endY = simY + dirY * visualPowerLimit;
+  const coinHit = findFirstCoinOnTrajectory(simX, simY, dirX, dirY, visualPowerLimit);
+
+  let endX = simX + dirX * visualPowerLimit;
+  let endY = simY + dirY * visualPowerLimit;
+  if (coinHit) {
+    endX = coinHit.hitX;
+    endY = coinHit.hitY;
+  }
 
   // Draw main aim line
   ctx.beginPath();
@@ -466,7 +541,115 @@ function drawTrajectoryAndAngles(ctx) {
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  // 3. Bounce Visualization (The Teacher Moment)
+  // 3. Coin Collision Prediction (if a coin is in the striker's path)
+  if (coinHit) {
+    const coinDirectionX = -coinHit.normalX;
+    const coinDirectionY = -coinHit.normalY;
+    const coinDirAngle = Math.atan2(coinDirectionY, coinDirectionX);
+    const incomingAngle = Math.atan2(dirY, dirX);
+
+    // Draw a clear impact marker and line of contact to coin center.
+    ctx.beginPath();
+    ctx.setLineDash([]);
+    ctx.arc(coinHit.hitX, coinHit.hitY, Math.max(4, striker.radius * 0.25), 0, Math.PI * 2);
+    ctx.fillStyle = "#ef4444";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.setLineDash([3, 5]);
+    ctx.moveTo(coinHit.hitX, coinHit.hitY);
+    ctx.lineTo(coinHit.ball.x, coinHit.ball.y);
+    ctx.strokeStyle = "rgba(250, 204, 21, 0.95)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Predicted coin travel after impact.
+    const coinWallDistance = getWallRayDistance(
+      coinHit.ball.x,
+      coinHit.ball.y,
+      coinDirectionX,
+      coinDirectionY,
+      coinHit.ball.radius,
+    );
+    const coinTravel = Math.min(pullDistance * 2.3, coinWallDistance * 0.9, boardSize * 0.35);
+    const coinEndX = coinHit.ball.x + coinDirectionX * coinTravel;
+    const coinEndY = coinHit.ball.y + coinDirectionY * coinTravel;
+
+    ctx.beginPath();
+    ctx.setLineDash([7, 7]);
+    ctx.moveTo(coinHit.ball.x, coinHit.ball.y);
+    ctx.lineTo(coinEndX, coinEndY);
+    ctx.strokeStyle = "#22c55e";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Predicted striker deflection after glancing impact.
+    const normalDot = dirX * coinHit.normalX + dirY * coinHit.normalY;
+    let tangentX = dirX - normalDot * coinHit.normalX;
+    let tangentY = dirY - normalDot * coinHit.normalY;
+    const tangentLen = Math.hypot(tangentX, tangentY);
+
+    if (tangentLen > 0.06) {
+      tangentX /= tangentLen;
+      tangentY /= tangentLen;
+
+      const strikerWallDistance = getWallRayDistance(
+        coinHit.hitX,
+        coinHit.hitY,
+        tangentX,
+        tangentY,
+        striker.radius,
+      );
+      const strikerTravel = Math.min(
+        pullDistance * 1.7,
+        strikerWallDistance * 0.85,
+        boardSize * 0.25,
+      );
+      const strikerEndX = coinHit.hitX + tangentX * strikerTravel;
+      const strikerEndY = coinHit.hitY + tangentY * strikerTravel;
+      const deflectAngle = Math.atan2(tangentY, tangentX);
+
+      ctx.beginPath();
+      ctx.setLineDash([7, 7]);
+      ctx.moveTo(coinHit.hitX, coinHit.hitY);
+      ctx.lineTo(strikerEndX, strikerEndY);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      drawAngleArc(
+        ctx,
+        coinHit.hitX,
+        coinHit.hitY,
+        Math.max(22, striker.radius * 1.3),
+        coinDirAngle,
+        deflectAngle,
+        "rgba(56, 189, 248, 0.9)",
+      );
+    }
+
+    // Impact angle between incoming striker direction and coin push direction.
+    drawAngleArc(
+      ctx,
+      coinHit.hitX,
+      coinHit.hitY,
+      Math.max(16, striker.radius),
+      coinDirAngle,
+      incomingAngle,
+      "rgba(250, 204, 21, 0.95)",
+    );
+
+    const hitDot = Math.max(-1, Math.min(1, dirX * coinDirectionX + dirY * coinDirectionY));
+    const hitAngleDeg = Math.round((Math.acos(hitDot) * 180) / Math.PI);
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#111827";
+    ctx.font = "700 16px Quicksand";
+    ctx.fillText(`${hitAngleDeg}\u00B0`, coinHit.hitX + 18, coinHit.hitY - 10);
+
+    return;
+  }
+
+  // 4. Bounce Visualization (The Teacher Moment)
   if (visualPowerLimit === tMin) {
     // We hit a wall visually
     // Draw normal line (perpendicular to wall)
