@@ -47,11 +47,11 @@ let promptIndex = 0;
 function resizeCanvas() {
   const container = document.getElementById("game-container");
   const containerRect = container.getBoundingClientRect();
-  const topUiReserve = 170;
-  const widthLimit = Math.min(containerRect.width * 0.84, window.innerWidth * 0.84, 620);
+  const topUiReserve = 105;
+  const widthLimit = Math.min(containerRect.width * 0.94, window.innerWidth * 0.92, 760);
   const heightLimit = Math.min(containerRect.height - topUiReserve, window.innerHeight - topUiReserve);
 
-  boardSize = Math.floor(Math.max(260, Math.min(widthLimit, heightLimit)));
+  boardSize = Math.floor(Math.max(280, Math.min(widthLimit, heightLimit)));
   canvas.width = boardSize;
   canvas.height = boardSize;
   canvas.style.width = `${boardSize}px`;

@@ -17,8 +17,8 @@ body {
 
 #game-container {
   position: relative;
-  width: min(92vw, 1140px);
-  height: min(92vh, 820px);
+  width: min(94vw, 1180px);
+  height: min(94vh, 860px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -39,9 +39,9 @@ canvas {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   border: 12px solid #4a210b; /* Controlled board border */
   box-sizing: border-box;
-  width: min(82vw, 620px);
+  width: min(90vw, 760px);
   max-width: 100%;
-  max-height: calc(100% - 170px);
+  max-height: calc(100% - 120px);
   aspect-ratio: 1 / 1;
 }
 
@@ -57,7 +57,13 @@ canvas {
 
 .teacher-prompt {
   position: absolute;
-  top: 16px;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 260px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: #1f2937;
   padding: 12px 24px;
   border-radius: 30px;
@@ -87,9 +93,13 @@ canvas {
 
 .stats-bar {
   position: absolute;
-  top: 72px;
+  top: 70px;
+  left: 16px;
+  right: 16px;
   display: flex;
-  gap: 20px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
   z-index: 10;
   pointer-events: none;
 }
@@ -133,22 +143,24 @@ p {
 
   #game-container {
     width: 95vw;
-    height: min(94vh, 760px);
+    height: min(95vh, 760px);
     border-radius: 16px;
     padding: 10px 10px 18px;
   }
 
   .teacher-prompt {
     top: 10px;
+    max-width: calc(100% - 24px);
+    white-space: normal;
     font-size: 0.95rem;
     padding: 10px 16px;
   }
 
   .stats-bar {
-    top: 54px;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
+    top: 62px;
+    left: 10px;
+    right: 10px;
+    gap: 8px;
   }
 
   .stat-badge {
@@ -157,8 +169,8 @@ p {
   }
 
   canvas {
-    width: min(90vw, 520px);
-    max-height: calc(100% - 150px);
+    width: min(93vw, 560px);
+    max-height: calc(100% - 130px);
     border-width: 10px;
   }
 }
