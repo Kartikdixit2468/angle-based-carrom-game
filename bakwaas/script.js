@@ -32,6 +32,69 @@ let dragCurrent = { x: 0, y: 0 };
 let laneGap = 0;
 let laneLength = 0;
 
+// Challenge System
+let currentChallengeIndex = 0;
+let validCoins = [];
+let challengeHistory = [];
+
+const challenges = [
+  // Challenge 1: Easy starter - exact angle
+  {
+    id: 1,
+    instruction: "🎯 Hit ANY coin at exactly 45 degrees (±3°)",
+    hint: "Look for coins on the diagonal",
+    validate: (ball, angle) => Math.abs(angle - 45) < 3
+  },
+  
+  // Challenge 2: Right angle
+  {
+    id: 2,
+    instruction: "📐 Hit ANY coin at a right angle (90° ±3°)",
+    hint: "Look for coins directly above the striker",
+    validate: (ball, angle) => Math.abs(angle - 90) < 3
+  },
+  
+  // Challenge 3: Color + angle type
+  {
+    id: 3,
+    instruction: "⚪ Hit a WHITE coin at an acute angle (< 90°)",
+    hint: "Acute means less than 90 degrees",
+    validate: (ball, angle) => ball.color === "#f8fafc" && angle < 90 && angle > 5
+  },
+  
+  // Challenge 4: Range challenge
+  {
+    id: 4,
+    instruction: "🎲 Hit ANY coin between 60° and 80°",
+    hint: "Find a coin in this moderate angle range",
+    validate: (ball, angle) => angle >= 60 && angle <= 80
+  },
+  
+  // Challenge 5: Color + obtuse
+  {
+    id: 5,
+    instruction: "⚫ Hit a BLACK coin at an obtuse angle (90° to 120°)",
+    hint: "Obtuse means more than 90° but less than 180°",
+    validate: (ball, angle) => ball.color === "#1e293b" && angle > 90 && angle <= 120
+  },
+  
+  // Challenge 6: Specific color
+  {
+    id: 6,
+    instruction: "🔴 Hit the RED coin at any angle",
+    hint: "The red coin is the queen in the center",
+    validate: (ball, angle) => ball.color === "#dc2626"
+  },
+  
+  // Challenge 7: Final challenge - arithmetic
+  {
+    id: 7,
+    instruction: "⭐ Hit ANY coin at exactly double 45° (90° ±3°)",
+    hint: "Double of 45° equals 90°",
+    validate: (ball, angle) => Math.abs(angle - 90) < 3
+  }
+];
+
 // Educational Prompts cycle
 const teacherPrompts = [
   "Drag the striker sideways to find a good spot!",
@@ -163,6 +226,146 @@ class Ball {
   }
 }
 
+// ========== CHALLENGE SYSTEM FUNCTIONS ==========
+
+// Calculate angles from striker to all coins
+function calculateCoinAngles() {
+  const angles = [];
+  const striker = balls.find(b => b.isStriker);
+  if (!striker) return angles;
+  
+  for (let ball of balls) {
+    if (ball.isStriker || ball.inPocket) continue;
+    
+    const dx = ball.x - striker.x;
+    const dy = ball.y - striker.y;
+    let angle = Math.atan2(-dy, dx) * 180 / Math.PI;
+    if (angle < 0) angle += 360;
+    
+    angles.push({
+      ball: ball,
+      angle: Math.round(angle * 10) / 10 // Round to 1 decimal
+    });
+  }
+  
+  return angles;
+}
+
+// Start a specific challenge
+function startChallenge(index) {
+  if (index >= challenges.length) {
+    // All challenges complete! Show win screen
+    gameState = "GAMEOVER";
+    gameOverMessage = "🎉 AMAZING! You completed all 7 challenges! 🎉";
+    return;
+  }
+  
+  currentChallengeIndex = index;
+  const challenge = challenges[index];
+  
+  // Update UI
+  const scoreElement = document.getElementById("score");
+  if (scoreElement) {
+    scoreElement.textContent = `Challenge: ${index + 1}/7`;
+  }
+  
+  // Update instruction display
+  const promptElement = document.getElementById("teacher-prompt");
+  if (promptElement) {
+    promptElement.textContent = challenge.instruction;
+  }
+  
+  // Calculate which coins are valid for this challenge
+  updateValidCoins();
+}
+
+// Update which coins are valid targets
+function updateValidCoins() {
+  validCoins = [];
+  
+  try {
+    const challenge = challenges[currentChallengeIndex];
+    if (!challenge) {
+      console.error("No challenge at index:", currentChallengeIndex);
+      return;
+    }
+    
+    const angles = calculateCoinAngles();
+    
+    for (let item of angles) {
+      if (challenge.validate(item.ball, item.angle)) {
+        validCoins.push(item.ball);
+      }
+    }
+  } catch (error) {
+    console.error("Error in updateValidCoins:", error);
+  }
+}
+
+// Draw visual highlights on valid coins
+function drawChallengeHighlights(ctx) {
+  try {
+    if (validCoins.length === 0) return;
+    
+    const time = Date.now() / 1000;
+    const pulse = Math.sin(time * 3) * 0.5 + 0.5; // 0 to 1 pulsing
+    
+    ctx.save();
+    for (let coin of validCoins) {
+      if (!coin.active || coin.inPocket) continue;
+      
+      // Golden glow
+      ctx.strokeStyle = `rgba(255, 215, 0, ${0.6 + pulse * 0.4})`;
+      ctx.lineWidth = 3 + pulse * 2;
+      ctx.beginPath();
+      ctx.arc(coin.x, coin.y, coin.radius + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  } catch (error) {
+    console.error("Error in drawChallengeHighlights:", error);
+  }
+}
+
+// Check if the hit ball completes the challenge
+function checkChallengeSuccess(hitBall) {
+  try {
+    const challenge = challenges[currentChallengeIndex];
+    if (!challenge) return false;
+    
+    const angles = calculateCoinAngles();
+    const angleData = angles.find(a => a.ball === hitBall);
+    
+    if (!angleData) return false;
+    
+    if (challenge.validate(hitBall, angleData.angle)) {
+      // Success!
+      challengeHistory.push({
+        challengeId: challenge.id,
+        angle: angleData.angle,
+        ballColor: hitBall.color
+      });
+      
+      // Show success feedback
+      setTimeout(() => {
+        alert(`✅ Correct! You hit at ${angleData.angle}°\n\nChallenge ${currentChallengeIndex + 1} complete!`);
+        startChallenge(currentChallengeIndex + 1);
+      }, 500);
+      
+      return true;
+    } else {
+      // Failed
+      setTimeout(() => {
+        alert(`❌ Not quite! That was ${angleData.angle}°\n\nTry again: ${challenge.instruction}`);
+      }, 500);
+      return false;
+    }
+  } catch (error) {
+    console.error("Error in checkChallengeSuccess:", error);
+    return false;
+  }
+}
+
 // Level Setup
 function initLevel() {
   balls = [];
@@ -224,8 +427,10 @@ function changePrompt(msg) {
 }
 
 function updateUI() {
-  scoreEl.textContent = score;
-  timeEl.textContent = timeLeft;
+  // Challenge system handles score display, so we only update time
+  if (timeEl) {
+    timeEl.textContent = timeLeft;
+  }
 }
 
 // Input Handling
@@ -265,6 +470,7 @@ window.addEventListener("touchend", endInteraction, { passive: false });
 window.addEventListener("touchcancel", endInteraction, { passive: false });
 
 function isStrikerMoving() {
+  if (!striker) return false;
   return Math.abs(striker.vx) > 0.1 || Math.abs(striker.vy) > 0.1;
 }
 
@@ -310,6 +516,11 @@ function moveInteraction(e) {
     const laneRight = boardSize / 2 + laneLength / 2;
     striker.x = Math.max(laneLeft, Math.min(laneRight, pos.x));
     dragCurrent = pos;
+    
+    // Update valid coins when striker moves (only if challenge system is initialized)
+    if (currentChallengeIndex >= 0 && challenges[currentChallengeIndex]) {
+      updateValidCoins();
+    }
   } else if (interactionMode === "AIM") {
     dragCurrent = pos;
   }
@@ -887,6 +1098,13 @@ function handleCollisions() {
         b1.vy -= p * b2.mass * ny * restitution;
         b2.vx += p * b1.mass * nx * restitution;
         b2.vy += p * b1.mass * ny * restitution;
+        
+        // Challenge System: Check if striker hit a coin
+        if (b1.isStriker && !b2.isStriker) {
+          checkChallengeSuccess(b2);
+        } else if (b2.isStriker && !b1.isStriker) {
+          checkChallengeSuccess(b1);
+        }
       }
     }
   }
@@ -1068,12 +1286,16 @@ function gameLoop(timestamp) {
       resetStriker();
       shotTaken = false;
       changePrompt("Striker returned! Position it, then aim your next shot.");
+      
+      // Update valid coins after balls stop (angles change when striker moves)
+      updateValidCoins();
     }
   }
 
   drawBoard();
   drawTrajectoryAndAngles(ctx);
   balls.forEach((b) => b.draw(ctx));
+  drawChallengeHighlights(ctx); // Highlight valid coins
 
   requestAnimationFrame(gameLoop);
 }
@@ -1084,6 +1306,11 @@ function startGame() {
   document.getElementById("game-over").classList.add("hidden");
   gameState = "PLAYING";
   initLevel();
+  
+  // Initialize challenge system
+  currentChallengeIndex = 0;
+  challengeHistory = [];
+  startChallenge(0);
 }
 
 function endGame(isWin) {
