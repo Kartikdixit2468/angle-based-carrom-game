@@ -529,13 +529,31 @@ function drawTrajectoryAndAngles(ctx) {
     }
   }
 
-  // Limit trajectory length visually based on pull power
-  const visualPowerLimit = Math.min(pullDistance * 4, tMin);
-  const coinHit = findFirstCoinOnTrajectory(simX, simY, dirX, dirY, visualPowerLimit);
+  // Determine the first predicted collision event (coin vs wall) robustly.
+  const maxAimDistance = pullDistance * 4;
+  const wallHitDistance = tMin;
+  const eventEpsilon = 1e-4;
+  const coinSearchDistance = Math.min(maxAimDistance, wallHitDistance + eventEpsilon);
+  const coinHit = findFirstCoinOnTrajectory(simX, simY, dirX, dirY, coinSearchDistance);
+
+  let hitType = "none";
+  let visualPowerLimit = Math.min(maxAimDistance, wallHitDistance);
+
+  if (
+    coinHit &&
+    coinHit.t <= maxAimDistance + eventEpsilon &&
+    coinHit.t < wallHitDistance - eventEpsilon
+  ) {
+    hitType = "coin";
+    visualPowerLimit = coinHit.t;
+  } else if (wallHitDistance <= maxAimDistance + eventEpsilon) {
+    hitType = "wall";
+    visualPowerLimit = wallHitDistance;
+  }
 
   let endX = simX + dirX * visualPowerLimit;
   let endY = simY + dirY * visualPowerLimit;
-  if (coinHit) {
+  if (hitType === "coin" && coinHit) {
     // Stop at the first actual striker-coin contact point.
     endX = coinHit.hitX;
     endY = coinHit.hitY;
@@ -551,7 +569,7 @@ function drawTrajectoryAndAngles(ctx) {
   ctx.stroke();
 
   // 3. Coin Collision Prediction (if a coin is in the striker's path)
-  if (coinHit) {
+  if (hitType === "coin" && coinHit) {
     // Ghost striker at impact point so the contact looks physically clear.
     const ghostRadius = striker.radius;
     ctx.beginPath();
@@ -732,7 +750,24 @@ function drawTrajectoryAndAngles(ctx) {
   }
 
   // 4. Bounce Visualization (The Teacher Moment)
-  if (visualPowerLimit === tMin) {
+  if (hitType === "wall") {
+    // Ghost striker at wall impact point for clearer collision teaching.
+    const wallGhostRadius = striker.radius;
+    ctx.beginPath();
+    ctx.setLineDash([]);
+    ctx.arc(endX, endY, wallGhostRadius, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(59, 130, 246, 0.24)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(37, 99, 235, 0.72)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(endX, endY, wallGhostRadius * 0.44, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(147, 197, 253, 0.7)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
     // We hit a wall visually
     // Draw normal line (perpendicular to wall)
     ctx.beginPath();
