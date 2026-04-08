@@ -1,7 +1,23 @@
 # Math Carrom - Educational Game
 
 ## Overview
-Math Carrom is an interactive educational game that teaches geometry concepts through carrom gameplay. Players learn about angles (acute, obtuse, right, reflex), complementary and supplementary angles, and angle ranges while trying to score 250 points within 5 minutes.
+Math Carrom is an interactive educational game that teaches geometry concepts through carrom gameplay. Players learn about angles (acute, obtuse, right, reflex), complementary and supplementary angles, and angle ranges. Score as many points as you can within 200 seconds!
+
+## Project Structure
+```
+wonderkids3/
+├── index.html          # Main HTML structure
+├── style.css           # All styling and responsive design
+├── script.js           # Game logic and physics engine
+├── README.md           # This documentation file
+└── sounds/             # Audio assets folder
+    ├── bg_music_n.mp3  # Background music (loops during gameplay)
+    ├── congrats.mp3    # Success/congratulations sound
+    ├── correct.mp3     # Correct answer feedback
+    ├── wrong.mp3       # Wrong answer feedback
+    ├── drop2.wav       # Coin pocket sound
+    └── hit.wav         # Collision sound (fallback, uses synthetic audio)
+```
 
 ## Game Workflow
 
@@ -377,14 +393,16 @@ GAMEOVER State → Shows results screen
 
 ### Scoring System
 - **+10 points:** Hitting a coin with correct angle
-- **+40 points:** Pocketing a coin (only awarded if angle is correct)
+- **+40 points:** Pocketing a coin with correct angle
 - **+50 points:** Clearing all coins from board (triggers respawn)
 - **-10 points:** Wrong angle, missing all coins, or striker scratch
-- **Disqualification:** Score drops to -30 or below
+- **Disqualification:** Score drops to ≤ -30
+- **Coin Respawn:** Coins pocketed with wrong angle respawn at center
 
 ### Win/Loss Conditions
-- **Win:** Reach 250 points before time expires
-- **Loss:** Time runs out (300 seconds) OR disqualified (score ≤ -30)
+- **Congratulations:** Score > 0 when time expires (200 seconds)
+- **Better Luck:** Score ≤ 0 when time expires
+- **Disqualification:** Score drops to ≤ -30 during gameplay
 
 ### Challenge Types
 1. **Angle Vocabulary:** Acute, Right, Obtuse, Reflex angles
@@ -398,7 +416,8 @@ GAMEOVER State → Shows results screen
 - **Friction:** 2.8% velocity reduction per frame
 - **Collision:** Elastic collisions with 85% energy retention
 - **Mass ratio:** Striker mass = 3, Coin mass = 1
-- **Maximum striker speed:** 60 units/frame
+- **Maximum striker speed:** 40 units/frame (reduced for kid-friendly gameplay)
+- **Power limiter:** 0.15 multiplier (controls shot strength)
 
 ---
 
@@ -442,8 +461,62 @@ Win/Loss → endGame() → GAMEOVER State
 
 ---
 
+## Audio System
+
+### Audio Features
+The game includes a comprehensive audio system for enhanced user experience:
+
+1. **Collision Sounds** (Synthetic Web Audio API)
+   - Zero-latency hit sounds using oscillator synthesis
+   - Plays on: striker-coin, coin-coin, striker-wall, coin-wall collisions
+   - Uses dual-tone sine wave (1000Hz → 200Hz, 25ms duration)
+   - Smart collision tracking prevents sound spam during continuous contact
+
+2. **Feedback Sounds** (from `sounds/` folder)
+   - `correct.mp3` - Plays when angle challenge is solved correctly
+   - `wrong.mp3` - Plays on wrong angle or missed shot
+   - `congrats.mp3` - Plays when coin successfully pocketed
+   - `drop2.wav` - Plays when coin falls into pocket
+
+3. **Background Music**
+   - `bg_music_n.mp3` - Loops during gameplay at 30% volume
+   - Starts when "Play" button clicked
+   - Stops on game over
+
+### Audio Implementation
+- **Web Audio API** for synthetic collision sounds (instant playback)
+- **HTML5 Audio** with cloning for overlapping sound effects
+- **AudioContext.resume()** called to prevent browser suspension
+- Audio files loaded with preload="auto" for minimal latency
+
+---
+
+## Kid-Friendly Features
+
+### 8-Second Hint System
+- Game waits for 8 seconds after challenge starts
+- No immediate highlighting to encourage independent thinking
+- After 8 seconds of inactivity:
+  - Valid coins get highlighted with golden pulses
+  - Prompt updates to "💡 Hint: Try hitting the highlighted coins!"
+- Resets on shot taken or new challenge
+
+### Responsive Design
+- **Desktop:** Clear spacing, larger text, 88px top margin
+- **Mobile:** Compact layout, smaller fonts (0.7rem), 90px top margin
+- **Notification bar:** Full-width on mobile, proper vertical spacing
+- **Canvas positioning:** Dynamic margins to prevent UI overlap
+
+### Smart Coin Pockets
+- **Correct angle + pocket:** Coin removed permanently, congrats sound plays
+- **Wrong angle + pocket:** Coin respawns at center, wrong sound plays
+- Prevents frustration from accidental pockets
+
+---
+
 ## Browser Compatibility
 - Requires Canvas 2D API
+- Web Audio API for sound synthesis
 - Touch and mouse input supported
 - Responsive design for mobile and desktop
 - Uses modern ES6 JavaScript features
@@ -458,3 +531,14 @@ This game teaches:
 - **Supplementary angles** (sum to 180°)
 - **Inequalities** and range comparisons
 - **Trajectory prediction** and physics intuition
+- **Independent problem-solving** with scaffolded hints
+
+---
+
+## How to Run
+1. Open `index.html` in a modern web browser
+2. Click "Play" to start the game
+3. Background music begins playing
+4. Drag the striker to aim and shoot at the highlighted coins
+5. Score points by following the angle instructions
+6. Try to maximize your score within 200 seconds!
