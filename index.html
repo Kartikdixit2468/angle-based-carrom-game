@@ -281,6 +281,133 @@
       const timeEl = document.getElementById("time-display");
       const playerScoreEl = document.getElementById("player-score");
 
+      // Sound Effects - Cleaner synthetic audio
+      const audioPool = {
+        audioContext: null,
+        masterVolume: 0.35,
+        dropSound: null,
+        correctSound: null,
+        wrongSound: null,
+        
+        init() {
+          try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Load audio files
+            this.dropSound = new Audio("drop2.wav");
+            this.dropSound.volume = 0.6;
+            this.dropSound.preload = "auto";
+            
+            this.correctSound = new Audio("correct.mp3");
+            this.correctSound.volume = 0.7;
+            this.correctSound.preload = "auto";
+            
+            this.wrongSound = new Audio("wrong.mp3");
+            this.wrongSound.volume = 0.7;
+            this.wrongSound.preload = "auto";
+          } catch (error) {
+            console.log('Audio init failed:', error);
+          }
+        },
+        
+        playHit() {
+          if (!this.audioContext) {
+            console.log('AudioContext not initialized!');
+            return;
+          }
+          
+          console.log('Playing hit sound'); // Debug log
+          
+          const ctx = this.audioContext;
+          const now = ctx.currentTime;
+          
+          // Clean carrom hit: high-freq click + body thump
+          const click = ctx.createOscillator();
+          const thump = ctx.createOscillator();
+          
+          // Sharp high-frequency click (carrom striker hitting)
+          click.type = 'sine';
+          click.frequency.setValueAtTime(1200, now);
+          click.frequency.exponentialRampToValueAtTime(400, now + 0.02);
+          
+          // Deep body resonance
+          thump.type = 'sine';
+          thump.frequency.setValueAtTime(180, now);
+          thump.frequency.exponentialRampToValueAtTime(60, now + 0.04);
+          
+          // Create gain envelopes
+          const clickGain = ctx.createGain();
+          const thumpGain = ctx.createGain();
+          const masterGain = ctx.createGain();
+          
+          // Sharp percussive envelope
+          clickGain.gain.setValueAtTime(0.5, now);
+          clickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.025);
+          
+          thumpGain.gain.setValueAtTime(0.4, now);
+          thumpGain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+          
+          masterGain.gain.value = this.masterVolume;
+          
+          // Connect
+          click.connect(clickGain);
+          thump.connect(thumpGain);
+          clickGain.connect(masterGain);
+          thumpGain.connect(masterGain);
+          masterGain.connect(ctx.destination);
+          
+          // Play
+          click.start(now);
+          thump.start(now);
+          click.stop(now + 0.03);
+          thump.stop(now + 0.06);
+        },
+        
+        playDrop() {
+          if (this.dropSound) {
+            const sound = this.dropSound.cloneNode();
+            sound.volume = 0.6;
+            sound.play().catch(() => {});
+          }
+        },
+        
+        playCorrect() {
+          if (this.correctSound) {
+            const sound = this.correctSound.cloneNode();
+            sound.volume = 0.7;
+            sound.play().catch(() => {});
+          }
+        },
+        
+        playWrong() {
+          if (this.wrongSound) {
+            const sound = this.wrongSound.cloneNode();
+            sound.volume = 0.7;
+            sound.play().catch(() => {});
+          }
+        }
+      };
+      
+      // Initialize audio on first user interaction
+      let audioInitialized = false;
+      function ensureAudioInit() {
+        if (!audioInitialized) {
+          audioPool.init();
+          audioInitialized = true;
+        }
+      }
+      
+      // Collision tracking to prevent repeated sounds
+      const recentCollisions = new Set();
+      
+      function getCollisionKey(b1, b2) {
+        return b1.id < b2.id ? `${b1.id}-${b2.id}` : `${b2.id}-${b1.id}`;
+      }
+      
+      function getWallCollisionKey(ball, wall) {
+        return `${ball.id}-wall-${wall}`;
+      }
+
       // Game State
       let gameState = "MENU"; // MENU, PLAYING, FEEDBACK, GAMEOVER
       let timeLeft = 300;
@@ -494,8 +621,11 @@
       resizeCanvas();
 
       // --- Entity Classes ---
+      let ballIdCounter = 0;
+      
       class Ball {
         constructor(x, y, radius, mass, color, isStriker = false) {
+          this.id = ballIdCounter++;
           this.x = x;
           this.y = y;
           this.radius = radius;
@@ -627,6 +757,9 @@
 
           // Only save successful angles to history for complement/supplement calc
           challengeHistory.push({ angle: fb.angle });
+          
+          // Play correct sound
+          audioPool.playCorrect();
 
           title.textContent = "✅ Correct!";
           title.className = "text-4xl font-bold mb-3 text-green-400";
@@ -650,6 +783,9 @@
           // PENALTY
           playerScore -= 10;
           updateScoreUI();
+          
+          // Play wrong sound
+          audioPool.playWrong();
 
           if (coinsPocketedThisShot > 0) {
             extraText = `<br><br><span class="text-gray-400 font-bold">🪙 Coin pocketed, but wrong angle (No bonus)</span>`;
@@ -793,6 +929,10 @@
         if (gameState !== "PLAYING" || isStrikerMoving() || !striker.active)
           return;
         if (e.cancelable) e.preventDefault();
+        
+        // Initialize audio on first interaction
+        ensureAudioInit();
+        
         const pos = getMousePos(e);
         if (
           Math.hypot(pos.x - striker.x, pos.y - striker.y) <
@@ -840,8 +980,8 @@
         if (interactionMode === "AIM") {
           const dx = dragStart.x - dragCurrent.x;
           const dy = dragStart.y - dragCurrent.y;
-          const powerLimiter = 0.25;
-          const maxSpeed = 60;
+          const powerLimiter = 0.15; // Reduced from 0.25 for slower shots
+          const maxSpeed = 40; // Reduced from 60 for more control
 
           striker.vx = Math.max(
             -maxSpeed,
@@ -947,8 +1087,8 @@
         const pullDistance = Math.hypot(dx, dy);
         if (pullDistance < 10) return;
 
-        const launchVx = Math.max(-60, Math.min(60, dx * 0.25));
-        const launchVy = Math.max(-60, Math.min(60, dy * 0.25));
+        const launchVx = Math.max(-40, Math.min(40, dx * 0.15));
+        const launchVy = Math.max(-40, Math.min(40, dy * 0.15));
         const launchSpeed = Math.hypot(launchVx, launchVy);
         if (launchSpeed < 0.05) return;
 
@@ -1182,21 +1322,58 @@
         const minPos = boardSize * 0.015,
           maxPos = boardSize - minPos;
 
+        // Clear collision tracking for separated objects
+        const currentFrame = new Set();
+
         balls.forEach((b) => {
           if (!b.active) return;
+          
           if (b.x - b.radius < minPos) {
             b.x = minPos + b.radius;
             b.vx *= -1;
+            const key = getWallCollisionKey(b, 'left');
+            if (!recentCollisions.has(key)) {
+              const type = b.isStriker ? 'Striker' : 'Coin';
+              console.log(`🔊 Wall collision: ${type} hit left wall`);
+              audioPool.playHit();
+              recentCollisions.add(key);
+            }
+            currentFrame.add(key);
           } else if (b.x + b.radius > maxPos) {
             b.x = maxPos - b.radius;
             b.vx *= -1;
+            const key = getWallCollisionKey(b, 'right');
+            if (!recentCollisions.has(key)) {
+              const type = b.isStriker ? 'Striker' : 'Coin';
+              console.log(`🔊 Wall collision: ${type} hit right wall`);
+              audioPool.playHit();
+              recentCollisions.add(key);
+            }
+            currentFrame.add(key);
           }
+          
           if (b.y - b.radius < minPos) {
             b.y = minPos + b.radius;
             b.vy *= -1;
+            const key = getWallCollisionKey(b, 'top');
+            if (!recentCollisions.has(key)) {
+              const type = b.isStriker ? 'Striker' : 'Coin';
+              console.log(`🔊 Wall collision: ${type} hit top wall`);
+              audioPool.playHit();
+              recentCollisions.add(key);
+            }
+            currentFrame.add(key);
           } else if (b.y + b.radius > maxPos) {
             b.y = maxPos - b.radius;
             b.vy *= -1;
+            const key = getWallCollisionKey(b, 'bottom');
+            if (!recentCollisions.has(key)) {
+              const type = b.isStriker ? 'Striker' : 'Coin';
+              console.log(`🔊 Wall collision: ${type} hit bottom wall`);
+              audioPool.playHit();
+              recentCollisions.add(key);
+            }
+            currentFrame.add(key);
           }
         });
 
@@ -1211,6 +1388,9 @@
               minDist = b1.radius + b2.radius;
 
             if (dist < minDist) {
+              const collisionKey = getCollisionKey(b1, b2);
+              currentFrame.add(collisionKey);
+              
               const overlap = minDist - dist,
                 nx = dx / dist,
                 ny = dy / dist;
@@ -1227,12 +1407,32 @@
               b2.vx += p * b1.mass * nx * 0.85;
               b2.vy += p * b1.mass * ny * 0.85;
 
+              // Play sound only once per collision
+              if (!recentCollisions.has(collisionKey)) {
+                const type1 = b1.isStriker ? 'Striker' : 'Coin';
+                const type2 = b2.isStriker ? 'Striker' : 'Coin';
+                console.log(`🔊 Collision detected: ${type1} hit ${type2}`);
+                console.log(`Recent collisions size: ${recentCollisions.size}`);
+                console.log(`AudioContext ready: ${audioPool.audioContext !== null}`);
+                audioPool.playHit();
+                recentCollisions.add(collisionKey);
+              } else {
+                console.log(`⏭️ Collision already tracked, skipping sound`);
+              }
+
               if (!shotEvaluated && (b1.isStriker || b2.isStriker)) {
                 shotEvaluated = true;
                 const hitCoin = b1.isStriker ? b2 : b1;
                 evaluateShot(hitCoin);
               }
             }
+          }
+        }
+        
+        // Clear old collision keys that are no longer active
+        for (let key of recentCollisions) {
+          if (!currentFrame.has(key)) {
+            recentCollisions.delete(key);
           }
         }
 
@@ -1248,6 +1448,7 @@
                 b.y = boardSize - laneGap;
                 playerScore -= 10;
                 updateScoreUI();
+                audioPool.playDrop(); // Play drop sound for striker scratch
                 if (playerScore <= -30 && gameState !== "GAMEOVER") {
                   endGame(false, "Disqualified! You scratched too many times.");
                 }
@@ -1255,6 +1456,7 @@
                 // Normal Coin pocketed (removes from board instead of respawning at center)
                 b.active = false;
                 coinsPocketedThisShot++;
+                audioPool.playDrop(); // Play drop sound for coin pocket
               }
               break;
             }
@@ -1432,6 +1634,9 @@
 
       // --- Managers ---
       function startGame() {
+        // Initialize audio immediately when game starts
+        ensureAudioInit();
+        
         document.getElementById("menu").classList.add("hidden");
         document.getElementById("game-over").classList.add("hidden");
         gameState = "PLAYING";
