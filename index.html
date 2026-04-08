@@ -197,7 +197,7 @@
               d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
             />
           </svg>
-          Score: <span id="player-score">0</span>/250
+          Score: <span id="player-score">0</span>
         </div>
 
         <div class="stat-badge text-blue-500 border-2 border-blue-200">
@@ -212,7 +212,7 @@
               clip-rule="evenodd"
             />
           </svg>
-          Time: <span id="time-display">300</span>s
+          Time: <span id="time-display">200</span>s
         </div>
       </div>
 
@@ -221,7 +221,7 @@
       <div id="menu" class="ui-panel modal-center">
         <h1 class="text-4xl font-bold text-blue-400 mb-2">Math Carrom</h1>
         <p class="text-gray-300 mb-6 font-semibold text-lg">
-          Master geometry to score 250 points!
+          Master geometry and score as many points as you can!
         </p>
         <div
           class="text-left text-sm text-gray-300 mb-6 space-y-3 bg-gray-800 p-5 rounded-lg border border-gray-600"
@@ -424,7 +424,7 @@
 
       // Game State
       let gameState = "MENU"; // MENU, PLAYING, FEEDBACK, GAMEOVER
-      let timeLeft = 300;
+      let timeLeft = 200; // Changed to 200 seconds
       let timerInterval;
       let boardSize = 0;
       let lastTime = 0;
@@ -435,7 +435,6 @@
 
       // Score System
       let playerScore = 0;
-      const WINNING_SCORE = 250;
       let coinsPocketedThisShot = 0;
       let pocketedCoinsThisShot = []; // Track which coins were pocketed
 
@@ -456,6 +455,9 @@
       let currentChallenge = null;
       let validCoins = [];
       let challengeHistory = [];
+      let challengeStartTime = 0;
+      let showHintHighlight = false;
+      let hintShown = false;
 
       function updateScoreUI() {
         if (playerScoreEl) playerScoreEl.textContent = playerScore;
@@ -575,6 +577,11 @@
 
         changePrompt(currentChallenge.instruction);
         updateValidCoins();
+        
+        // Start inactivity timer
+        challengeStartTime = Date.now();
+        showHintHighlight = false;
+        hintShown = false;
       }
 
       function updateValidCoins() {
@@ -720,7 +727,9 @@
       }
 
       function drawChallengeHighlights(ctx) {
-        if (validCoins.length === 0 || gameState !== "PLAYING") return;
+        // Only show highlights if hint is triggered (after 8 seconds of inactivity)
+        if (!showHintHighlight || validCoins.length === 0 || gameState !== "PLAYING") return;
+        
         const time = Date.now() / 1000;
         const pulse = Math.sin(time * 4) * 0.5 + 0.5;
         ctx.save();
@@ -791,11 +800,7 @@
           btn.textContent = "Continue";
           btn.onclick = () => {
             modal.classList.add("hidden");
-            if (playerScore >= WINNING_SCORE) {
-              endGame(true);
-              return;
-            }
-
+            
             gameState = "PLAYING";
             pendingFeedback = null;
             shotEvaluated = false;
@@ -845,11 +850,7 @@
 
             btn.onclick = () => {
               modal.classList.add("hidden");
-              if (playerScore >= WINNING_SCORE) {
-                endGame(true);
-                return;
-              }
-
+              
               gameState = "PLAYING";
               pendingFeedback = null;
               shotEvaluated = false;
@@ -884,7 +885,7 @@
 
       function initLevel() {
         balls = [];
-        timeLeft = 300;
+        timeLeft = 200; // Reset to 200 seconds
         playerScore = 0;
         shotTaken = false;
         shotEvaluated = false;
@@ -1029,6 +1030,8 @@
             pendingFeedback = null;
             coinsPocketedThisShot = 0;
             pocketedCoinsThisShot = []; // Reset pocketed coins tracker
+            showHintHighlight = false; // Hide hint when shot is taken
+            hintShown = false; // Allow hint to show again for next challenge
 
             const launchSpeed = Math.hypot(striker.vx, striker.vy);
             const dirX = striker.vx / launchSpeed;
@@ -1467,7 +1470,7 @@
                 updateScoreUI();
                 audioPool.playDrop(); // Play drop sound for striker scratch
                 if (playerScore <= -30 && gameState !== "GAMEOVER") {
-                  endGame(false, "Disqualified! You scratched too many times.");
+                  endGame(true, "Disqualified! You scratched too many times.");
                 }
               } else {
                 // Coin pocketed - don't remove yet, track it for later
@@ -1599,6 +1602,16 @@
         lastTime = timestamp;
 
         if (gameState === "PLAYING") {
+          // Check for inactivity (8 seconds without shooting)
+          if (!shotTaken && !hintShown && challengeStartTime > 0) {
+            const timeSinceChallenge = Date.now() - challengeStartTime;
+            if (timeSinceChallenge >= 8000) { // 8 seconds
+              showHintHighlight = true;
+              hintShown = true;
+              changePrompt(`💡 Hint: Try hitting the highlighted coins! ${currentChallenge ? currentChallenge.instruction : ''}`);
+            }
+          }
+          
           balls.forEach((b) => b.update(dt));
           handleCollisions();
 
@@ -1628,7 +1641,7 @@
 
               if (playerScore <= -30) {
                 endGame(
-                  false,
+                  true,
                   `Disqualified! Missed too many shots. Score dropped to ${playerScore}.`,
                 );
               } else {
@@ -1666,7 +1679,7 @@
         startNewChallenge();
       }
 
-      function endGame(isWin, customMsg = null) {
+      function endGame(isDisqualified = false, customMsg = null) {
         gameState = "GAMEOVER";
         clearInterval(timerInterval);
         
@@ -1678,20 +1691,25 @@
         const msg = document.getElementById("end-msg");
 
         gameOverScreen.classList.remove("hidden");
-        if (isWin) {
-          title.textContent = "🏆 Math Master!";
-          title.className = "text-4xl font-bold mb-4 text-green-400";
-          msg.textContent = `You reached 250 points with ${timeLeft} seconds left!`;
+        
+        if (isDisqualified) {
+          // Disqualified - score <= -30
+          title.textContent = "😔 Oops!";
+          title.className = "text-4xl font-bold mb-4 text-red-500";
+          msg.textContent = customMsg || "Better luck next time!";
+          audioPool.playWrong();
+        } else if (playerScore <= 0) {
+          // Time's up but score is 0 or negative
+          title.textContent = "😔 Better Luck Next Time!";
+          title.className = "text-4xl font-bold mb-4 text-orange-400";
+          msg.textContent = `Time's up! You scored ${playerScore} points. Keep practicing those angles!`;
+          audioPool.playWrong();
         } else {
-          if (customMsg) {
-            title.textContent = "🚨 All Out!";
-            title.className = "text-4xl font-bold mb-4 text-red-500";
-            msg.textContent = customMsg;
-          } else {
-            title.textContent = "⏱ Time's Up!";
-            title.className = "text-4xl font-bold mb-4 text-red-400";
-            msg.textContent = `You scored ${playerScore} points. Try to reach 250 next time!`;
-          }
+          // Time's up with positive score - always congratulate!
+          title.textContent = "🎉 Congratulations!";
+          title.className = "text-4xl font-bold mb-4 text-green-400";
+          msg.textContent = `You scored ${playerScore} points! Great job mastering geometry!`;
+          audioPool.playCongrats();
         }
       }
 
