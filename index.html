@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Math Carrom - Challenge Mode</title>
+    <title>Math Carrom - Endless Mode</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap");
@@ -63,10 +63,10 @@
 
       .ui-panel {
         position: absolute;
-        background: rgba(31, 41, 55, 0.95);
+        background: rgba(31, 41, 55, 0.97);
         padding: 24px;
         border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
         text-align: center;
         border: 4px solid #4b5563;
         z-index: 40;
@@ -77,7 +77,7 @@
         left: 50%;
         transform: translate(-50%, -50%);
         width: 90%;
-        max-width: 400px;
+        max-width: 440px;
         z-index: 100;
       }
 
@@ -165,6 +165,8 @@
           left: 10px;
           right: 10px;
           gap: 8px;
+          justify-content: space-between;
+          flex-wrap: nowrap;
         }
         .stat-badge {
           padding: 6px 12px;
@@ -185,18 +187,19 @@
       </div>
 
       <div class="stats-bar">
-        <div class="stat-badge text-orange-500 border-2 border-orange-200">
+        <div class="stat-badge text-green-500 border-2 border-green-200">
           <svg
-            class="w-5 h-5 text-orange-400"
+            class="w-5 h-5 text-green-400"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
             <path
-              d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z"
+              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
             />
           </svg>
-          Challenge: <span id="score">1/7</span>
+          Score: <span id="player-score">0</span>/250
         </div>
+
         <div class="stat-badge text-blue-500 border-2 border-blue-200">
           <svg
             class="w-5 h-5 text-blue-400"
@@ -216,25 +219,29 @@
       <canvas id="gameCanvas"></canvas>
 
       <div id="menu" class="ui-panel modal-center">
-        <h1 class="text-3xl font-bold text-blue-400 mb-2">Math Carrom</h1>
-        <p class="text-gray-300 mb-6 font-semibold">
-          Master the angles to beat the challenges!
+        <h1 class="text-4xl font-bold text-blue-400 mb-2">Math Carrom</h1>
+        <p class="text-gray-300 mb-6 font-semibold text-lg">
+          Master geometry to score 250 points!
         </p>
         <div
-          class="text-left text-sm text-gray-300 mb-6 space-y-2 bg-gray-800 p-4 rounded-lg border border-gray-600"
+          class="text-left text-sm text-gray-300 mb-6 space-y-3 bg-gray-800 p-5 rounded-lg border border-gray-600"
         >
           <p>✋ <b>Drag</b> left/right to position your striker.</p>
           <p>🎯 <b>Pull backwards</b> to aim & set power.</p>
+          <p>🧠 Learn <b>Acute, Obtuse, Right, & Ranges</b>!</p>
           <p>
-            📐 The glowing <b>gold rings</b> show the correct coins for your
-            current challenge!
+            🌟 <b>+10 Pts</b> for correct angles, <b>+40 Pts</b> for pockets!
           </p>
+          <p>
+            ❌ <b>-10 Pts</b> penalty for missing, scratching, or wrong angles.
+          </p>
+          <p>🚨 <b>All Out</b> if your score drops to -30!</p>
         </div>
         <button
           id="start-btn"
-          class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95 text-lg border-2 border-blue-400 w-full"
+          class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95 text-xl border-2 border-blue-400 w-full"
         >
-          Play Challenge Mode
+          Play
         </button>
       </div>
 
@@ -242,11 +249,11 @@
         id="feedback-modal"
         class="ui-panel modal-center hidden flex flex-col items-center"
       >
-        <h2 id="feedback-title" class="text-3xl font-bold mb-3"></h2>
-        <p id="feedback-desc" class="text-gray-300 mb-6 text-lg"></p>
+        <h2 id="feedback-title" class="text-4xl font-bold mb-3"></h2>
+        <p id="feedback-desc" class="text-gray-300 mb-6 text-xl"></p>
         <button
           id="feedback-btn"
-          class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-10 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95 text-lg border-2 border-blue-400"
+          class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-10 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95 text-xl border-2 border-blue-400"
         >
           Continue
         </button>
@@ -257,22 +264,22 @@
         <p id="end-msg" class="text-gray-300 mb-8 text-xl"></p>
         <button
           id="restart-btn"
-          class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95 text-lg border-2 border-blue-400 w-full"
+          class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95 text-xl border-2 border-blue-400 w-full"
         >
-          Try Again
+          Play Again
         </button>
       </div>
     </div>
 
     <script>
       /**
-       * MATH CARROM: Challenge Mode
+       * MATH CARROM: Endless Dynamic Mode
        */
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
       const promptEl = document.getElementById("prompt");
-      const scoreEl = document.getElementById("score");
       const timeEl = document.getElementById("time-display");
+      const playerScoreEl = document.getElementById("player-score");
 
       // Game State
       let gameState = "MENU"; // MENU, PLAYING, FEEDBACK, GAMEOVER
@@ -282,8 +289,13 @@
       let lastTime = 0;
       let shotTaken = false;
       let shotEvaluated = false;
-      let lastShotAngle = 0; // Stores the exact angle the player shot at
-      let pendingFeedback = null; // Stores evaluation until the balls stop moving
+      let lastShotAngle = 0;
+      let pendingFeedback = null;
+
+      // Score System
+      let playerScore = 0;
+      const WINNING_SCORE = 250;
+      let coinsPocketedThisShot = 0;
 
       // Physics objects
       let balls = [];
@@ -292,60 +304,147 @@
 
       // Input state
       let isInteracting = false;
-      let interactionMode = "NONE"; // 'NONE', 'POSITION', 'AIM'
+      let interactionMode = "NONE";
       let dragStart = { x: 0, y: 0 };
       let dragCurrent = { x: 0, y: 0 };
       let laneGap = 0;
       let laneLength = 0;
 
       // Challenge System
-      let currentChallengeIndex = 0;
+      let currentChallenge = null;
       let validCoins = [];
       let challengeHistory = [];
 
-      const challenges = [
-        {
-          id: 1,
-          instruction: "🎯 Hit ANY coin shooting between 35° and 55°",
-          validate: (ball, angle) => angle >= 35 && angle <= 55,
-        },
-        {
-          id: 2,
-          instruction:
-            "📐 Hit ANY coin shooting near a right angle (80° - 100°)",
-          validate: (ball, angle) => angle >= 80 && angle <= 100,
-        },
-        {
-          id: 3,
-          instruction: "⚪ Hit a WHITE coin shooting at an acute angle (< 90°)",
-          validate: (ball, angle) =>
-            ball.color === "#f8fafc" && angle < 90 && angle > 5,
-        },
-        {
-          id: 4,
-          instruction: "🎲 Hit ANY coin shooting between 135° and 155°",
-          validate: (ball, angle) => angle >= 135 && angle <= 155,
-        },
-        {
-          id: 5,
-          instruction:
-            "⚫ Hit a BLACK coin shooting at an obtuse angle (> 90°)",
-          validate: (ball, angle) =>
-            ball.color === "#1e293b" && angle > 90 && angle < 175,
-        },
-        {
-          id: 6,
-          instruction: "🔴 Hit the RED coin from any angle",
-          validate: (ball, angle) => ball.color === "#dc2626",
-        },
-        {
-          id: 7,
-          instruction:
-            "⭐ Hit ANY coin shooting very low (0°-25° OR 155°-180°)",
-          validate: (ball, angle) =>
-            (angle >= 0 && angle <= 25) || (angle >= 155 && angle <= 180),
-        },
-      ];
+      function updateScoreUI() {
+        if (playerScoreEl) playerScoreEl.textContent = playerScore;
+      }
+
+      // --- Dynamic Challenge Generator ---
+      function generateSmartChallenge() {
+        // 1. Get available target coins
+        const activeCoins = balls.filter((b) => !b.isStriker && b.active);
+        if (activeCoins.length === 0) return null;
+
+        // 2. Pick a random coin to ensure the generated challenge is 100% physically solvable
+        const targetCoin =
+          activeCoins[Math.floor(Math.random() * activeCoins.length)];
+        const baselineX = boardSize / 2;
+        const baselineY = boardSize - laneGap;
+        const dx = targetCoin.x - baselineX;
+        const dy = targetCoin.y - baselineY;
+
+        let targetAngle = (Math.atan2(-dy, dx) * 180) / Math.PI;
+        if (targetAngle < 0) targetAngle += 360;
+        targetAngle = Math.round(targetAngle);
+
+        // Get color for vocabulary
+        let colorName = "WHITE";
+        if (targetCoin.color === "#1e293b") colorName = "BLACK";
+        if (targetCoin.color === "#dc2626") colorName = "RED";
+
+        const validRules = [];
+
+        // --- A. Vocabulary Rules ---
+        if (targetAngle >= 5 && targetAngle <= 86) {
+          validRules.push({
+            instruction: "📐 Hit ANY coin using an ACUTE angle (less than 90°)",
+            validate: (b, a) => a >= 5 && a <= 86,
+          });
+          validRules.push({
+            instruction: `⚪ Hit a ${colorName} coin using an ACUTE angle (< 90°)`,
+            validate: (b, a) =>
+              b.color === targetCoin.color && a >= 5 && a <= 86,
+          });
+        } else if (targetAngle >= 86 && targetAngle <= 94) {
+          validRules.push({
+            instruction:
+              "🔲 Hit ANY coin using a RIGHT angle (exactly 90° ±4°)",
+            validate: (b, a) => Math.abs(a - 90) <= 4,
+          });
+        } else if (targetAngle >= 94 && targetAngle <= 175) {
+          validRules.push({
+            instruction:
+              "📏 Hit ANY coin using an OBTUSE angle (greater than 90°)",
+            validate: (b, a) => a >= 94 && a <= 175,
+          });
+          validRules.push({
+            instruction: `⚫ Hit a ${colorName} coin using an OBTUSE angle (> 90°)`,
+            validate: (b, a) =>
+              b.color === targetCoin.color && a >= 94 && a <= 175,
+          });
+        } else if (targetAngle >= 185 && targetAngle <= 355) {
+          validRules.push({
+            instruction:
+              "🔄 Hit ANY coin using a REFLEX angle (shoot backwards, > 180°!)",
+            validate: (b, a) => a >= 185 && a <= 355,
+          });
+        }
+
+        // --- B. Range and Inequality Rules ---
+        const rangeOffset = Math.floor(Math.random() * 10) + 10; // 10 to 20 degree padding
+        const minAng = Math.max(0, targetAngle - rangeOffset);
+        const maxAng = Math.min(360, targetAngle + rangeOffset);
+        validRules.push({
+          instruction: `🎯 Hit ANY coin shooting BETWEEN ${minAng}° and ${maxAng}°`,
+          validate: (b, a) => a >= minAng && a <= maxAng,
+        });
+
+        const lessBound = targetAngle + Math.floor(Math.random() * 15) + 10;
+        if (lessBound < 180) {
+          validRules.push({
+            instruction: `📉 Hit ANY coin with an angle LESS THAN ${lessBound}°`,
+            validate: (b, a) => a < lessBound,
+          });
+        }
+
+        const greaterBound = targetAngle - Math.floor(Math.random() * 15) - 10;
+        if (greaterBound > 0) {
+          validRules.push({
+            instruction: `📈 Hit ANY coin with an angle GREATER THAN ${greaterBound}°`,
+            validate: (b, a) => a > greaterBound,
+          });
+        }
+
+        // --- C. Dynamic Math Rules (Complementary / Supplementary) ---
+        if (challengeHistory.length > 0) {
+          const lastAng = challengeHistory[challengeHistory.length - 1].angle;
+
+          if (Math.abs(targetAngle + lastAng - 90) <= 15) {
+            validRules.push({
+              instruction: `🧠 COMPLEMENTARY: Your shot + last shot (${lastAng}°) must make 90°! (±5°)`,
+              validate: (b, a) => Math.abs(a + lastAng - 90) <= 5,
+            });
+          }
+          if (Math.abs(targetAngle + lastAng - 180) <= 15) {
+            validRules.push({
+              instruction: `🧠 SUPPLEMENTARY: Your shot + last shot (${lastAng}°) must make 180°! (±5°)`,
+              validate: (b, a) => Math.abs(a + lastAng - 180) <= 5,
+            });
+          }
+        }
+
+        // 3. Return a randomly selected rule from the tailored pool
+        return validRules[Math.floor(Math.random() * validRules.length)];
+      }
+
+      function startNewChallenge() {
+        currentChallenge = generateSmartChallenge();
+        if (!currentChallenge) return; // Will be handled by board clear
+
+        changePrompt(currentChallenge.instruction);
+        updateValidCoins();
+      }
+
+      function updateValidCoins() {
+        validCoins = [];
+        if (!currentChallenge) return;
+        const angles = calculateCoinAngles();
+        for (let item of angles) {
+          if (currentChallenge.validate(item.ball, item.angle)) {
+            validCoins.push(item.ball);
+          }
+        }
+      }
 
       // --- Initialization & Resizing ---
       function resizeCanvas() {
@@ -461,7 +560,6 @@
         }
       }
 
-      // --- Challenge System ---
       function calculateCoinAngles() {
         const angles = [];
         if (!striker) return angles;
@@ -474,31 +572,6 @@
           angles.push({ ball: ball, angle: Math.round(angle) });
         }
         return angles;
-      }
-
-      function startChallenge(index) {
-        if (index >= challenges.length) {
-          endGame(true);
-          return;
-        }
-        currentChallengeIndex = index;
-        const challenge = challenges[index];
-
-        if (scoreEl) scoreEl.textContent = `${index + 1}/${challenges.length}`;
-        changePrompt(challenge.instruction);
-        updateValidCoins();
-      }
-
-      function updateValidCoins() {
-        validCoins = [];
-        const challenge = challenges[currentChallengeIndex];
-        if (!challenge) return;
-        const angles = calculateCoinAngles();
-        for (let item of angles) {
-          if (challenge.validate(item.ball, item.angle)) {
-            validCoins.push(item.ball);
-          }
-        }
       }
 
       function drawChallengeHighlights(ctx) {
@@ -517,17 +590,15 @@
         ctx.restore();
       }
 
-      // Evaluates the shot quietly in the background without pausing the game
       function evaluateShot(hitBall) {
-        const challenge = challenges[currentChallengeIndex];
-        if (!challenge) return;
+        if (!currentChallenge) return;
 
-        const isSuccess = challenge.validate(hitBall, lastShotAngle);
+        const isSuccess = currentChallenge.validate(hitBall, lastShotAngle);
 
         pendingFeedback = {
           isSuccess: isSuccess,
           angle: lastShotAngle,
-          challenge: challenge,
+          challenge: currentChallenge,
         };
       }
 
@@ -541,57 +612,98 @@
         const btn = document.getElementById("feedback-btn");
 
         const fb = pendingFeedback;
+        let extraText = "";
 
         if (fb.isSuccess) {
-          challengeHistory.push({ id: fb.challenge.id, angle: fb.angle });
+          playerScore += 10;
+
+          // Award the +40 points if challenge was successful and coin pocketed
+          if (coinsPocketedThisShot > 0) {
+            playerScore += coinsPocketedThisShot * 40;
+            extraText = `<br><br><span class="text-yellow-400 font-bold">🪙 Pocketed Coin: +${coinsPocketedThisShot * 40} pts!</span>`;
+          }
+
+          updateScoreUI();
+
+          // Only save successful angles to history for complement/supplement calc
+          challengeHistory.push({ angle: fb.angle });
+
           title.textContent = "✅ Correct!";
           title.className = "text-4xl font-bold mb-3 text-green-400";
-          desc.innerHTML = `You shot at <b>${fb.angle}°</b>.<br><br>Awesome geometry!`;
+          desc.innerHTML = `You shot at <b>${fb.angle}°</b>.<br><br>Awesome geometry! <span class="text-green-400 font-bold">(+10 pts)</span>${extraText}`;
 
+          btn.textContent = "Continue";
           btn.onclick = () => {
             modal.classList.add("hidden");
+            if (playerScore >= WINNING_SCORE) {
+              endGame(true);
+              return;
+            }
+
             gameState = "PLAYING";
             pendingFeedback = null;
             shotEvaluated = false;
             resetStriker();
-            startChallenge(currentChallengeIndex + 1);
+            startNewChallenge();
           };
         } else {
-          title.textContent = "❌ Not quite!";
-          title.className = "text-4xl font-bold mb-3 text-red-400";
-          desc.innerHTML = `You shot at <b>${fb.angle}°</b>.<br><br>Goal: <span class="text-blue-300 font-bold">${fb.challenge.instruction}</span>`;
+          // PENALTY
+          playerScore -= 10;
+          updateScoreUI();
 
-          btn.onclick = () => {
-            modal.classList.add("hidden");
-            gameState = "PLAYING";
-            pendingFeedback = null;
-            shotEvaluated = false;
-            resetStriker();
-            updateValidCoins();
-          };
+          if (coinsPocketedThisShot > 0) {
+            extraText = `<br><br><span class="text-gray-400 font-bold">🪙 Coin pocketed, but wrong angle (No bonus)</span>`;
+          }
+
+          // CHECK SCORE DISQUALIFICATION (ALL OUT)
+          if (playerScore <= -30) {
+            title.textContent = "🚨 All Out!";
+            title.className = "text-4xl font-bold mb-3 text-red-500";
+            desc.innerHTML = `Wrong angle: <b>${fb.angle}°</b>.<br><br><span class="text-red-400 font-bold">Penalty: -10 pts!</span>${extraText}<br><br>Your score dropped to <b>${playerScore}</b>. You are disqualified!`;
+            btn.textContent = "View Final Score";
+
+            btn.onclick = () => {
+              modal.classList.add("hidden");
+              btn.textContent = "Continue"; // Reset button text for next time
+              endGame(
+                false,
+                `Disqualified! Your score dropped too low (${playerScore}).`,
+              );
+            };
+          } else {
+            title.textContent = "❌ Not quite!";
+            title.className = "text-4xl font-bold mb-3 text-red-400";
+            desc.innerHTML = `You shot at <b>${fb.angle}°</b>.<br><br>Goal: <span class="text-blue-300 font-bold">${fb.challenge.instruction}</span><br><br><span class="text-red-400 font-bold">Penalty: -10 pts!</span>${extraText}`;
+            btn.textContent = "Continue";
+
+            btn.onclick = () => {
+              modal.classList.add("hidden");
+              if (playerScore >= WINNING_SCORE) {
+                endGame(true);
+                return;
+              }
+
+              gameState = "PLAYING";
+              pendingFeedback = null;
+              shotEvaluated = false;
+              resetStriker();
+              updateValidCoins();
+            };
+          }
         }
 
         modal.classList.remove("hidden");
       }
 
-      function initLevel() {
-        balls = [];
-        timeLeft = 300;
-        shotTaken = false;
-        shotEvaluated = false;
-        lastShotAngle = 0;
-        pendingFeedback = null;
-
-        if (timeEl) timeEl.textContent = timeLeft;
-
+      function spawnCoins() {
         const rBase = boardSize * 0.025;
         const centerX = boardSize / 2;
         const centerY = boardSize / 2;
-        const baselineY = boardSize - laneGap;
 
-        striker = new Ball(centerX, baselineY, rBase * 1.6, 3, "#2563eb", true);
-        balls.push(striker);
-        balls.push(new Ball(centerX, centerY, rBase, 1, "#dc2626"));
+        // Filter out any existing dead coins but keep striker
+        balls = balls.filter((b) => b.isStriker);
+
+        balls.push(new Ball(centerX, centerY, rBase, 1, "#dc2626")); // Queen
 
         for (let i = 0; i < 8; i++) {
           const angle = (i * Math.PI * 2) / 8;
@@ -601,6 +713,31 @@
             new Ball(x, y, rBase, 1, i % 2 === 0 ? "#f8fafc" : "#1e293b"),
           );
         }
+      }
+
+      function initLevel() {
+        balls = [];
+        timeLeft = 300;
+        playerScore = 0;
+        shotTaken = false;
+        shotEvaluated = false;
+        lastShotAngle = 0;
+        coinsPocketedThisShot = 0;
+        pendingFeedback = null;
+        challengeHistory = [];
+        currentChallenge = null;
+
+        updateScoreUI();
+        if (timeEl) timeEl.textContent = timeLeft;
+
+        const rBase = boardSize * 0.025;
+        const centerX = boardSize / 2;
+        const baselineY = boardSize - laneGap;
+
+        striker = new Ball(centerX, baselineY, rBase * 1.6, 3, "#2563eb", true);
+        balls.push(striker);
+
+        spawnCoins();
 
         clearInterval(timerInterval);
         timerInterval = setInterval(() => {
@@ -719,6 +856,7 @@
             shotTaken = true;
             shotEvaluated = false;
             pendingFeedback = null;
+            coinsPocketedThisShot = 0;
 
             const launchSpeed = Math.hypot(striker.vx, striker.vy);
             const dirX = striker.vx / launchSpeed;
@@ -916,11 +1054,31 @@
           ctx.beginPath();
           ctx.setLineDash([]);
           ctx.arc(coinHit.hitX, coinHit.hitY, striker.radius, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(59, 130, 246, 0.28)";
+          ctx.fillStyle = "rgba(37, 99, 235, 0.2)";
           ctx.fill();
-          ctx.strokeStyle = "rgba(37, 99, 235, 0.78)";
+          ctx.strokeStyle = "rgba(37, 99, 235, 0.8)";
           ctx.lineWidth = 2;
           ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(
+            coinHit.hitX,
+            coinHit.hitY,
+            striker.radius * 0.7,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fillStyle = "rgba(96, 165, 250, 0.4)";
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(
+            coinHit.hitX,
+            coinHit.hitY,
+            striker.radius * 0.3,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fillStyle = "rgba(147, 197, 253, 0.6)";
+          ctx.fill();
 
           // Ghost trajectory for coin
           const nX = -coinHit.normalX,
@@ -931,6 +1089,24 @@
           const coinPostVX = impulse * striker.mass * nX * 0.85,
             coinPostVY = impulse * striker.mass * nY * 0.85;
           const coinMag = Math.hypot(coinPostVX, coinPostVY);
+
+          const strikerPostVX =
+            launchVx - impulse * coinHit.ball.mass * nX * 0.85;
+          const strikerPostVY =
+            launchVy - impulse * coinHit.ball.mass * nY * 0.85;
+          const sMag = Math.hypot(strikerPostVX, strikerPostVY);
+          if (sMag > 1e-6) {
+            ctx.beginPath();
+            ctx.setLineDash([4, 4]);
+            ctx.moveTo(coinHit.hitX, coinHit.hitY);
+            ctx.lineTo(
+              coinHit.hitX + (strikerPostVX / sMag) * 60,
+              coinHit.hitY + (strikerPostVY / sMag) * 60,
+            );
+            ctx.strokeStyle = "rgba(59, 130, 246, 0.8)";
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+          }
 
           if (coinMag > 1e-6) {
             const cDX = coinPostVX / coinMag,
@@ -966,11 +1142,19 @@
           ctx.beginPath();
           ctx.setLineDash([]);
           ctx.arc(endX, endY, striker.radius, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(59, 130, 246, 0.24)";
+          ctx.fillStyle = "rgba(37, 99, 235, 0.2)";
           ctx.fill();
-          ctx.strokeStyle = "rgba(37, 99, 235, 0.72)";
+          ctx.strokeStyle = "rgba(37, 99, 235, 0.8)";
           ctx.lineWidth = 2;
           ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(endX, endY, striker.radius * 0.7, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(96, 165, 250, 0.4)";
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(endX, endY, striker.radius * 0.3, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(147, 197, 253, 0.6)";
+          ctx.fill();
 
           ctx.beginPath();
           ctx.setLineDash([4, 4]);
@@ -1043,7 +1227,6 @@
               b2.vx += p * b1.mass * nx * 0.85;
               b2.vy += p * b1.mass * ny * 0.85;
 
-              // Evaluate the shot quietly in the background upon first hit
               if (!shotEvaluated && (b1.isStriker || b2.isStriker)) {
                 shotEvaluated = true;
                 const hitCoin = b1.isStriker ? b2 : b1;
@@ -1058,15 +1241,20 @@
           for (let p of pockets) {
             if (Math.hypot(b.x - p.x, b.y - p.y) < p.r) {
               if (b.isStriker) {
+                // Striker Scratch Penalty
                 b.vx = 0;
                 b.vy = 0;
                 b.x = boardSize / 2;
                 b.y = boardSize - laneGap;
+                playerScore -= 10;
+                updateScoreUI();
+                if (playerScore <= -30 && gameState !== "GAMEOVER") {
+                  endGame(false, "Disqualified! You scratched too many times.");
+                }
               } else {
-                b.x = boardSize / 2;
-                b.y = boardSize / 2;
-                b.vx = 0;
-                b.vy = 0;
+                // Normal Coin pocketed (removes from board instead of respawning at center)
+                b.active = false;
+                coinsPocketedThisShot++;
               }
               break;
             }
@@ -1193,29 +1381,51 @@
           balls.forEach((b) => b.update(dt));
           handleCollisions();
 
-          // Check if the balls have completely finished moving
           const moving = balls.some(
             (b) => b.active && (Math.abs(b.vx) > 0.05 || Math.abs(b.vy) > 0.05),
           );
           if (shotTaken && !moving) {
             shotTaken = false;
+            if (gameState === "GAMEOVER") return;
 
-            // Only show the feedback modal AFTER all physics have played out naturally
-            if (pendingFeedback) {
+            // Board clear check: Respawns the coins when completely empty!
+            if (balls.filter((b) => !b.isStriker && b.active).length === 0) {
+              spawnCoins();
+              playerScore += 50; // Bonus for a board clear
+              updateScoreUI();
+              changePrompt("🌟 Board Cleared! Coins Respawned! (+50 pts)");
+              startNewChallenge();
+            } else if (pendingFeedback) {
               showFeedbackModal();
             } else {
-              // If they missed everything entirely, give them the striker back quietly
+              // If the striker didn't hit a single coin during the shot
               shotEvaluated = false;
               resetStriker();
-              changePrompt(challenges[currentChallengeIndex].instruction);
+
+              playerScore -= 10;
+              updateScoreUI();
+
+              if (playerScore <= -30) {
+                endGame(
+                  false,
+                  `Disqualified! Missed too many shots. Score dropped to ${playerScore}.`,
+                );
+              } else {
+                const instructionText =
+                  typeof currentChallenge.instruction === "function"
+                    ? currentChallenge.instruction()
+                    : currentChallenge.instruction;
+                changePrompt(`Missed! -10 pts. ${instructionText}`);
+              }
             }
           }
         }
 
         drawBoard();
-        if (gameState === "PLAYING") drawTrajectoryAndAngles(ctx);
-        balls.forEach((b) => b.draw(ctx));
         drawChallengeHighlights(ctx);
+        balls.forEach((b) => b.draw(ctx));
+
+        if (gameState === "PLAYING") drawTrajectoryAndAngles(ctx);
 
         requestAnimationFrame(gameLoop);
       }
@@ -1226,10 +1436,10 @@
         document.getElementById("game-over").classList.add("hidden");
         gameState = "PLAYING";
         initLevel();
-        startChallenge(0);
+        startNewChallenge();
       }
 
-      function endGame(isWin) {
+      function endGame(isWin, customMsg = null) {
         gameState = "GAMEOVER";
         clearInterval(timerInterval);
         const gameOverScreen = document.getElementById("game-over");
@@ -1238,13 +1448,19 @@
 
         gameOverScreen.classList.remove("hidden");
         if (isWin) {
-          title.textContent = "🏆 Master Geometrician!";
+          title.textContent = "🏆 Math Master!";
           title.className = "text-4xl font-bold mb-4 text-green-400";
-          msg.textContent = `You beat all 7 challenges with ${timeLeft} seconds left!`;
+          msg.textContent = `You reached 250 points with ${timeLeft} seconds left!`;
         } else {
-          title.textContent = "⏱ Time's Up!";
-          title.className = "text-4xl font-bold mb-4 text-red-400";
-          msg.textContent = `You reached Challenge ${currentChallengeIndex + 1}. Good try!`;
+          if (customMsg) {
+            title.textContent = "🚨 All Out!";
+            title.className = "text-4xl font-bold mb-4 text-red-500";
+            msg.textContent = customMsg;
+          } else {
+            title.textContent = "⏱ Time's Up!";
+            title.className = "text-4xl font-bold mb-4 text-red-400";
+            msg.textContent = `You scored ${playerScore} points. Try to reach 250 next time!`;
+          }
         }
       }
 
