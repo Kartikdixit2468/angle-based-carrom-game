@@ -57,8 +57,9 @@
         box-sizing: border-box;
         width: min(90vw, 760px);
         max-width: 100%;
-        max-height: calc(100% - 120px);
+        max-height: calc(100% - 150px);
         aspect-ratio: 1 / 1;
+        margin-top: 20px;
       }
 
       .ui-panel {
@@ -87,9 +88,9 @@
         left: 50%;
         transform: translateX(-50%);
         max-width: calc(100% - 20px);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
         background: #1f2937;
         padding: 12px 24px;
         border-radius: 30px;
@@ -101,25 +102,27 @@
         z-index: 10;
         animation: bounceIn 0.5s ease-out;
         pointer-events: none;
+        line-height: 1.4;
+        text-align: center;
       }
 
       @keyframes bounceIn {
         0% {
-          transform: scale(0.8);
+          transform: translateX(-50%) scale(0.8);
           opacity: 0;
         }
         60% {
-          transform: scale(1.05);
+          transform: translateX(-50%) scale(1.05);
           opacity: 1;
         }
         100% {
-          transform: scale(1);
+          transform: translateX(-50%) scale(1);
         }
       }
 
       .stats-bar {
         position: absolute;
-        top: 70px;
+        top: 88px;
         left: 16px;
         right: 16px;
         display: flex;
@@ -128,6 +131,7 @@
         gap: 14px;
         z-index: 10;
         pointer-events: none;
+        margin-bottom: 16px;
       }
 
       .stat-badge {
@@ -154,14 +158,22 @@
           padding: 10px 10px 18px;
         }
         .teacher-prompt {
-          top: 10px;
-          font-size: 0.95rem;
-          padding: 10px 16px;
+          top: 8px;
+          font-size: 0.7rem;
+          padding: 8px 10px;
           white-space: normal;
           text-align: center;
+          line-height: 1.3;
+          max-width: calc(100% - 12px);
+          border-width: 2px;
+          border-radius: 20px;
+          min-height: 45px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         .stats-bar {
-          top: 68px;
+          top: 90px;
           left: 10px;
           right: 10px;
           gap: 8px;
@@ -169,13 +181,19 @@
           flex-wrap: nowrap;
         }
         .stat-badge {
-          padding: 6px 12px;
-          font-size: 0.85rem;
+          padding: 5px 10px;
+          font-size: 0.7rem;
+          border-radius: 16px;
+        }
+        .stat-badge svg {
+          width: 14px;
+          height: 14px;
         }
         canvas {
           width: min(93vw, 560px);
-          max-height: calc(100% - 130px);
+          max-height: calc(100% - 160px);
           border-width: 10px;
+          margin-top: 20px;
         }
       }
     </style>
