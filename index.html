@@ -281,17 +281,22 @@
       const timeEl = document.getElementById("time-display");
       const playerScoreEl = document.getElementById("player-score");
 
-      // Sound Effects - Cleaner synthetic audio
+      // Sound Effects - Optimized for zero latency
       const audioPool = {
         audioContext: null,
         masterVolume: 0.35,
         dropSound: null,
         correctSound: null,
         wrongSound: null,
+        congratsSound: null,
+        bgMusic: null,
         
         init() {
           try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Resume context immediately (browsers may suspend it)
+            this.audioContext.resume();
             
             // Load audio files
             this.dropSound = new Audio("drop2.wav");
@@ -305,62 +310,50 @@
             this.wrongSound = new Audio("wrong.mp3");
             this.wrongSound.volume = 0.7;
             this.wrongSound.preload = "auto";
+            
+            this.congratsSound = new Audio("congrats.mp3");
+            this.congratsSound.volume = 0.8;
+            this.congratsSound.preload = "auto";
+            
+            // Background music
+            this.bgMusic = new Audio("bg_music_n.mp3");
+            this.bgMusic.volume = 0.3;
+            this.bgMusic.loop = true;
+            this.bgMusic.preload = "auto";
           } catch (error) {
             console.log('Audio init failed:', error);
           }
         },
         
         playHit() {
-          if (!this.audioContext) {
-            console.log('AudioContext not initialized!');
-            return;
-          }
+          if (!this.audioContext) return;
           
-          console.log('Playing hit sound'); // Debug log
+          // Resume context if suspended (critical for low latency)
+          if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+          }
           
           const ctx = this.audioContext;
           const now = ctx.currentTime;
           
-          // Clean carrom hit: high-freq click + body thump
-          const click = ctx.createOscillator();
-          const thump = ctx.createOscillator();
+          // Simplified hit sound for lower latency
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
           
-          // Sharp high-frequency click (carrom striker hitting)
-          click.type = 'sine';
-          click.frequency.setValueAtTime(1200, now);
-          click.frequency.exponentialRampToValueAtTime(400, now + 0.02);
+          // Sharp click (1000Hz -> 200Hz)
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1000, now);
+          osc.frequency.exponentialRampToValueAtTime(200, now + 0.015);
           
-          // Deep body resonance
-          thump.type = 'sine';
-          thump.frequency.setValueAtTime(180, now);
-          thump.frequency.exponentialRampToValueAtTime(60, now + 0.04);
+          // Quick envelope
+          gain.gain.setValueAtTime(this.masterVolume, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.02);
           
-          // Create gain envelopes
-          const clickGain = ctx.createGain();
-          const thumpGain = ctx.createGain();
-          const masterGain = ctx.createGain();
-          
-          // Sharp percussive envelope
-          clickGain.gain.setValueAtTime(0.5, now);
-          clickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.025);
-          
-          thumpGain.gain.setValueAtTime(0.4, now);
-          thumpGain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-          
-          masterGain.gain.value = this.masterVolume;
-          
-          // Connect
-          click.connect(clickGain);
-          thump.connect(thumpGain);
-          clickGain.connect(masterGain);
-          thumpGain.connect(masterGain);
-          masterGain.connect(ctx.destination);
-          
-          // Play
-          click.start(now);
-          thump.start(now);
-          click.stop(now + 0.03);
-          thump.stop(now + 0.06);
+          // Connect and play immediately
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.025);
         },
         
         playDrop() {
@@ -384,6 +377,27 @@
             const sound = this.wrongSound.cloneNode();
             sound.volume = 0.7;
             sound.play().catch(() => {});
+          }
+        },
+        
+        playCongrats() {
+          if (this.congratsSound) {
+            const sound = this.congratsSound.cloneNode();
+            sound.volume = 0.8;
+            sound.play().catch(() => {});
+          }
+        },
+        
+        startBgMusic() {
+          if (this.bgMusic) {
+            this.bgMusic.currentTime = 0;
+            this.bgMusic.play().catch((e) => console.log('BG music play prevented:', e));
+          }
+        },
+        
+        stopBgMusic() {
+          if (this.bgMusic) {
+            this.bgMusic.pause();
           }
         }
       };
@@ -423,6 +437,7 @@
       let playerScore = 0;
       const WINNING_SCORE = 250;
       let coinsPocketedThisShot = 0;
+      let pocketedCoinsThisShot = []; // Track which coins were pocketed
 
       // Physics objects
       let balls = [];
@@ -751,15 +766,23 @@
           if (coinsPocketedThisShot > 0) {
             playerScore += coinsPocketedThisShot * 40;
             extraText = `<br><br><span class="text-yellow-400 font-bold">🪙 Pocketed Coin: +${coinsPocketedThisShot * 40} pts!</span>`;
+            
+            // Play congrats sound for successful pocket
+            audioPool.playCongrats();
+            
+            // Remove pocketed coins permanently
+            pocketedCoinsThisShot.forEach(coin => {
+              coin.active = false;
+            });
+          } else {
+            // Just correct angle, no coins pocketed
+            audioPool.playCorrect();
           }
 
           updateScoreUI();
 
           // Only save successful angles to history for complement/supplement calc
           challengeHistory.push({ angle: fb.angle });
-          
-          // Play correct sound
-          audioPool.playCorrect();
 
           title.textContent = "✅ Correct!";
           title.className = "text-4xl font-bold mb-3 text-green-400";
@@ -786,9 +809,17 @@
           
           // Play wrong sound
           audioPool.playWrong();
-
+          
+          // Respawn coins that were pocketed with wrong angle
           if (coinsPocketedThisShot > 0) {
-            extraText = `<br><br><span class="text-gray-400 font-bold">🪙 Coin pocketed, but wrong angle (No bonus)</span>`;
+            pocketedCoinsThisShot.forEach(coin => {
+              coin.active = true;
+              coin.x = boardSize / 2;
+              coin.y = boardSize / 2;
+              coin.vx = 0;
+              coin.vy = 0;
+            });
+            extraText = `<br><br><span class="text-yellow-400 font-bold">🔄 Coin respawned at center (wrong angle)</span>`;
           }
 
           // CHECK SCORE DISQUALIFICATION (ALL OUT)
@@ -997,6 +1028,7 @@
             shotEvaluated = false;
             pendingFeedback = null;
             coinsPocketedThisShot = 0;
+            pocketedCoinsThisShot = []; // Reset pocketed coins tracker
 
             const launchSpeed = Math.hypot(striker.vx, striker.vy);
             const dirX = striker.vx / launchSpeed;
@@ -1333,8 +1365,6 @@
             b.vx *= -1;
             const key = getWallCollisionKey(b, 'left');
             if (!recentCollisions.has(key)) {
-              const type = b.isStriker ? 'Striker' : 'Coin';
-              console.log(`🔊 Wall collision: ${type} hit left wall`);
               audioPool.playHit();
               recentCollisions.add(key);
             }
@@ -1344,8 +1374,6 @@
             b.vx *= -1;
             const key = getWallCollisionKey(b, 'right');
             if (!recentCollisions.has(key)) {
-              const type = b.isStriker ? 'Striker' : 'Coin';
-              console.log(`🔊 Wall collision: ${type} hit right wall`);
               audioPool.playHit();
               recentCollisions.add(key);
             }
@@ -1357,8 +1385,6 @@
             b.vy *= -1;
             const key = getWallCollisionKey(b, 'top');
             if (!recentCollisions.has(key)) {
-              const type = b.isStriker ? 'Striker' : 'Coin';
-              console.log(`🔊 Wall collision: ${type} hit top wall`);
               audioPool.playHit();
               recentCollisions.add(key);
             }
@@ -1368,8 +1394,6 @@
             b.vy *= -1;
             const key = getWallCollisionKey(b, 'bottom');
             if (!recentCollisions.has(key)) {
-              const type = b.isStriker ? 'Striker' : 'Coin';
-              console.log(`🔊 Wall collision: ${type} hit bottom wall`);
               audioPool.playHit();
               recentCollisions.add(key);
             }
@@ -1409,15 +1433,8 @@
 
               // Play sound only once per collision
               if (!recentCollisions.has(collisionKey)) {
-                const type1 = b1.isStriker ? 'Striker' : 'Coin';
-                const type2 = b2.isStriker ? 'Striker' : 'Coin';
-                console.log(`🔊 Collision detected: ${type1} hit ${type2}`);
-                console.log(`Recent collisions size: ${recentCollisions.size}`);
-                console.log(`AudioContext ready: ${audioPool.audioContext !== null}`);
                 audioPool.playHit();
                 recentCollisions.add(collisionKey);
-              } else {
-                console.log(`⏭️ Collision already tracked, skipping sound`);
               }
 
               if (!shotEvaluated && (b1.isStriker || b2.isStriker)) {
@@ -1453,10 +1470,12 @@
                   endGame(false, "Disqualified! You scratched too many times.");
                 }
               } else {
-                // Normal Coin pocketed (removes from board instead of respawning at center)
-                b.active = false;
+                // Coin pocketed - don't remove yet, track it for later
                 coinsPocketedThisShot++;
+                pocketedCoinsThisShot.push(b);
                 audioPool.playDrop(); // Play drop sound for coin pocket
+                // Temporarily deactivate to prevent further collisions
+                b.active = false;
               }
               break;
             }
@@ -1637,6 +1656,9 @@
         // Initialize audio immediately when game starts
         ensureAudioInit();
         
+        // Start background music
+        audioPool.startBgMusic();
+        
         document.getElementById("menu").classList.add("hidden");
         document.getElementById("game-over").classList.add("hidden");
         gameState = "PLAYING";
@@ -1647,6 +1669,10 @@
       function endGame(isWin, customMsg = null) {
         gameState = "GAMEOVER";
         clearInterval(timerInterval);
+        
+        // Stop background music
+        audioPool.stopBgMusic();
+        
         const gameOverScreen = document.getElementById("game-over");
         const title = document.getElementById("end-title");
         const msg = document.getElementById("end-msg");
